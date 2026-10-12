@@ -1,0 +1,198 @@
+{
+  "id": "creative.storyboard",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "idea": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 3000
+      },
+      "direction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Short slug, e.g. 'invisible-mountain'"
+          },
+          "title": {
+            "type": "string"
+          },
+          "premise": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "visualTerritory": {
+            "type": "string"
+          },
+          "storytelling": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "palette": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "3–5 hex colours"
+          },
+          "motion": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Animation preset ids from the catalog"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Real campaigns, artists or works to look at"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "premise",
+          "why",
+          "visualTerritory",
+          "storytelling",
+          "tone",
+          "palette",
+          "motion",
+          "references"
+        ]
+      },
+      "format": {
+        "default": "9:16",
+        "type": "string"
+      },
+      "targetSeconds": {
+        "default": 15,
+        "type": "number",
+        "minimum": 5,
+        "maximum": 90
+      },
+      "dna": {
+        "type": "string",
+        "maxLength": 3000
+      },
+      "brandName": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "idea",
+      "direction"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "shots": {
+        "minItems": 2,
+        "maxItems": 16,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "purpose": {
+              "type": "string",
+              "enum": [
+                "hook",
+                "context",
+                "problem",
+                "turn",
+                "proof",
+                "payoff",
+                "cta",
+                "outro"
+              ]
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0.6,
+              "maximum": 8
+            },
+            "headline": {
+              "type": "string"
+            },
+            "subtitle": {
+              "type": "string"
+            },
+            "layout": {
+              "type": "string",
+              "enum": [
+                "center",
+                "top",
+                "bottom",
+                "lower-left",
+                "fullbleed"
+              ]
+            },
+            "camera": {
+              "type": "string",
+              "description": "e.g. static, slow push, pan left"
+            },
+            "visual": {
+              "type": "string",
+              "description": "Image needed for the shot, or 'none'"
+            },
+            "animation": {
+              "type": "string",
+              "description": "Text animation preset id"
+            },
+            "imageAnimation": {
+              "description": "Image animation preset id when there is a visual",
+              "type": "string"
+            },
+            "background": {
+              "type": "string",
+              "description": "Hex colour or background preset id"
+            },
+            "transition": {
+              "description": "Transition preset id into the next shot, or null for a cut",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "audio": {
+              "type": "string",
+              "description": "Music/sound note, e.g. 'beat hit', 'riser', 'silence'"
+            }
+          },
+          "required": [
+            "purpose",
+            "duration",
+            "headline",
+            "layout",
+            "camera",
+            "visual",
+            "animation",
+            "background",
+            "transition",
+            "audio"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "title",
+      "shots"
+    ],
+    "additionalProperties": false
+  }
+}

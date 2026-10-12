@@ -22,7 +22,7 @@ import {
 export function InviteForm({ slug, allowAdmin }: { slug: string; allowAdmin: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("editor");
+  const [role, setRole] = useState<Role>("designer");
   const [error, setError] = useState<string>();
   const [pending, startTransition] = useTransition();
   const roles = ROLE_ORDER.filter((r) => r !== "owner" && (allowAdmin || r !== "admin"));

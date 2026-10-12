@@ -10,9 +10,11 @@ import {
   uniqueIndex,
   date,
   boolean,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth";
-import type { AssetRights, CreativeDNA, CreativeSpec, ReferenceAnalysis } from "@/lib/creative-types";
+import type { AssetRights, BrainTurn, CreativeDirection, CreativeDNA, CreativeSpec, ReferenceAnalysis } from "@/lib/creative-types";
+import type { CreativeSpecDoc } from "@/lib/creative-spec/schema";
 
 const id = () =>
   text()
@@ -101,6 +103,10 @@ export const jobKind = pgEnum("job_kind", [
 
 export const jobStatus = pgEnum("job_status", ["queued", "running", "succeeded", "failed", "canceled"]);
 
+/** Where a project is in its journey. One project, one state; not separate apps. */
+export const projectStage = pgEnum("project_stage", ["idea", "explore", "direction", "story", "design", "motion", "final"]);
+export const skillRunStatus = pgEnum("skill_run_status", ["running", "succeeded", "failed", "cached"]);
+
 // ─── Tables ─────────────────────────────────────────────────────────────────
 
 /** A brand, product or client the team makes content for. Owns campaigns and assets. */
@@ -116,6 +122,17 @@ export const project = pgTable(
     /** Swatch used to identify the project across the UI. */
     color: text().notNull().default("#d4a373"),
     status: projectStatus().notNull().default("active"),
+    stage: projectStage().notNull().default("idea"),
+    /** IDEA: what the piece is trying to say. */
+    idea: text(),
+    audience: text(),
+    /** Primary output format, e.g. "9:16". */
+    format: text().notNull().default("9:16"),
+    /** DIRECTION: options offered and the one chosen. */
+    directions: jsonb().$type<CreativeDirection[]>().notNull().default([]),
+    chosenDirection: jsonb().$type<CreativeDirection | null>(),
+    /** STORY → FINAL: the source of truth for preview and render. */
+    spec: jsonb().$type<CreativeSpecDoc | null>(),
     createdById: creatorRef(),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
@@ -318,6 +335,73 @@ export const job = pgTable(
   ],
 );
 
+/** Observability: one row per skill execution (or cache hit). */
+export const skillRun = pgTable(
+  "skill_run",
+  {
+    id: id(),
+    organizationId: orgRef(),
+    projectId: text().references(() => project.id, { onDelete: "set null" }),
+    userId: text().references(() => user.id, { onDelete: "set null" }),
+    skillId: text().notNull(),
+    skillVersion: text().notNull(),
+    status: skillRunStatus().notNull().default("running"),
+    /** Why it ran, in plain language, e.g. "Draft storyboard for 'Second Life'". */
+    reason: text(),
+    inputHash: text().notNull(),
+    input: jsonb().$type<unknown>(),
+    output: jsonb().$type<unknown>(),
+    error: text(),
+    provider: text(),
+    model: text(),
+    inputTokens: integer().notNull().default(0),
+    outputTokens: integer().notNull().default(0),
+    /** Estimated USD, micro-dollar precision. */
+    costUsd: doublePrecision().notNull().default(0),
+    durationMs: integer().notNull().default(0),
+    attempts: integer().notNull().default(1),
+    parentRunId: text(),
+    workflowId: text(),
+    startedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    finishedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    index("skill_run_org_started_idx").on(t.organizationId, t.startedAt),
+    index("skill_run_cache_idx").on(t.organizationId, t.skillId, t.inputHash, t.status),
+  ],
+);
+
+/** Brain: a brainstorming conversation that can become a project. */
+export const brainThread = pgTable(
+  "brain_thread",
+  {
+    id: id(),
+    organizationId: orgRef(),
+    title: text().notNull(),
+    turns: jsonb().$type<BrainTurn[]>().notNull().default([]),
+    projectId: text().references(() => project.id, { onDelete: "set null" }),
+    createdById: creatorRef(),
+    ...timestamps,
+  },
+  (t) => [index("brain_thread_org_idx").on(t.organizationId, t.updatedAt)],
+);
+
+/** A saved, reusable composition (a CreativeSpec snapshot) in the library. */
+export const composition = pgTable(
+  "composition",
+  {
+    id: id(),
+    organizationId: orgRef(),
+    projectId: text().references(() => project.id, { onDelete: "set null" }),
+    name: text().notNull(),
+    description: text(),
+    spec: jsonb().$type<CreativeSpecDoc>().notNull(),
+    createdById: creatorRef(),
+    ...timestamps,
+  },
+  (t) => [index("composition_org_idx").on(t.organizationId, t.createdAt)],
+);
+
 // ─── Relations ──────────────────────────────────────────────────────────────
 
 export const projectRelations = relations(project, ({ one, many }) => ({
@@ -354,6 +438,9 @@ export type Asset = typeof asset.$inferSelect;
 export type Source = typeof source.$inferSelect;
 export type Reference = typeof reference.$inferSelect;
 export type CreativeMemory = typeof creativeMemory.$inferSelect;
+export type SkillRun = typeof skillRun.$inferSelect;
+export type BrainThread = typeof brainThread.$inferSelect;
+export type Composition = typeof composition.$inferSelect;
 export type AnimationPresetRow = typeof animationPreset.$inferSelect;
 export type Job = typeof job.$inferSelect;
 export type CampaignStatus = (typeof campaignStatus.enumValues)[number];

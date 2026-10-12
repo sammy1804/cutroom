@@ -1,0 +1,336 @@
+{
+  "id": "production.quality-control",
+  "version": "1.1.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "spec": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number",
+            "const": 1
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "aspect": {
+            "type": "string",
+            "enum": [
+              "9:16",
+              "1:1",
+              "4:5",
+              "16:9"
+            ]
+          },
+          "fps": {
+            "type": "number",
+            "const": 30
+          },
+          "style": {
+            "type": "object",
+            "properties": {
+              "background": {
+                "type": "string"
+              },
+              "foreground": {
+                "type": "string"
+              },
+              "accent": {
+                "type": "string"
+              },
+              "font": {
+                "default": "sans",
+                "type": "string",
+                "enum": [
+                  "sans",
+                  "serif",
+                  "mono"
+                ]
+              }
+            },
+            "required": [
+              "background",
+              "foreground",
+              "accent"
+            ]
+          },
+          "scenes": {
+            "minItems": 1,
+            "maxItems": 24,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^scene_\\d{2}$"
+                },
+                "purpose": {
+                  "default": "context",
+                  "type": "string",
+                  "enum": [
+                    "hook",
+                    "context",
+                    "problem",
+                    "turn",
+                    "proof",
+                    "payoff",
+                    "cta",
+                    "outro"
+                  ]
+                },
+                "duration": {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 20
+                },
+                "notes": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "camera": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "background": {
+                  "default": {
+                    "color": "#111111",
+                    "preset": null
+                  },
+                  "type": "object",
+                  "properties": {
+                    "color": {
+                      "default": "#111111",
+                      "type": "string"
+                    },
+                    "preset": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "presetId": {
+                              "type": "string"
+                            },
+                            "params": {
+                              "default": {},
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {
+                                "type": [
+                                  "number",
+                                  "string",
+                                  "boolean"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "presetId"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "elements": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "pattern": "^scene_\\d{2}\\.[a-z][a-z0-9_]*$"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "headline",
+                          "subtitle",
+                          "image",
+                          "logo",
+                          "cta"
+                        ]
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 240
+                      },
+                      "assetId": {
+                        "type": "string"
+                      },
+                      "src": {
+                        "type": "string"
+                      },
+                      "layout": {
+                        "default": "center",
+                        "type": "string",
+                        "enum": [
+                          "center",
+                          "top",
+                          "bottom",
+                          "lower-left",
+                          "fullbleed"
+                        ]
+                      },
+                      "size": {
+                        "type": "number",
+                        "minimum": 10,
+                        "maximum": 240
+                      },
+                      "animation": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "presetId": {
+                                "type": "string"
+                              },
+                              "params": {
+                                "default": {},
+                                "type": "object",
+                                "propertyNames": {
+                                  "type": "string"
+                                },
+                                "additionalProperties": {
+                                  "type": [
+                                    "number",
+                                    "string",
+                                    "boolean"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "presetId"
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "type"
+                    ]
+                  }
+                },
+                "transition": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "presetId": {
+                          "type": "string"
+                        },
+                        "params": {
+                          "default": {},
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": [
+                              "number",
+                              "string",
+                              "boolean"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "presetId"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "audio": {
+                  "type": "string",
+                  "maxLength": 120
+                }
+              },
+              "required": [
+                "id",
+                "duration",
+                "elements"
+              ]
+            }
+          }
+        },
+        "required": [
+          "version",
+          "title",
+          "aspect",
+          "fps",
+          "style",
+          "scenes"
+        ]
+      }
+    },
+    "required": [
+      "spec"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "score": {
+        "type": "number"
+      },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "severity": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "tip"
+              ]
+            },
+            "target": {
+              "type": "string",
+              "description": "Scene or element id, or 'spec'"
+            },
+            "message": {
+              "type": "string"
+            },
+            "fix": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "severity",
+            "target",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "score",
+      "issues"
+    ],
+    "additionalProperties": false
+  }
+}

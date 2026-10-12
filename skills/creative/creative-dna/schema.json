@@ -1,0 +1,163 @@
+{
+  "id": "creative.creative-dna",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "projectName": {
+        "type": "string"
+      },
+      "projectDescription": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "direction": {
+        "description": "The chosen creative direction, if any",
+        "type": "string"
+      },
+      "references": {
+        "minItems": 2,
+        "maxItems": 24,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "analysis": {}
+          },
+          "required": [
+            "id",
+            "title",
+            "url",
+            "analysis"
+          ]
+        }
+      },
+      "memory": {
+        "default": [],
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "title",
+            "note"
+          ]
+        }
+      }
+    },
+    "required": [
+      "projectName",
+      "projectDescription",
+      "references"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "headline": {
+        "type": "string"
+      },
+      "dimensions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "enum": [
+                "typography",
+                "color",
+                "photography",
+                "motion",
+                "composition",
+                "texture",
+                "tone"
+              ]
+            },
+            "direction": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "key",
+            "direction",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "learnedFrom": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "referenceId": {
+              "type": "string"
+            },
+            "learned": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "referenceId",
+            "learned"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "avoid": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "suggestedAnimations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "headline",
+      "dimensions",
+      "learnedFrom",
+      "avoid",
+      "suggestedAnimations"
+    ],
+    "additionalProperties": false
+  }
+}

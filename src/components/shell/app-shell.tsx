@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BrainCircuit, Clapperboard, Film, FolderOpen, Library, LayoutGrid, Menu, Plus, Settings, Sparkles } from "lucide-react";
+import { Brain, Compass, House, Library, Menu, PenLine, Plus, Settings, Sparkles } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { ProjectSwatch } from "@/components/status";
 import { Button } from "@/components/ui/button";
@@ -74,20 +74,16 @@ export function AppShell(props: ShellProps) {
   );
 }
 
-const PRODUCTION_SOON = [
-  { label: "Studio", icon: Clapperboard },
-  { label: "Renders", icon: Film },
-];
-
 function SidebarContent({ workspace, workspaces, user, pinnedProjects, canCreateProject, onCommand }: ShellProps & { onCommand: () => void }) {
   const pathname = usePathname();
   const base = `/w/${workspace.slug}`;
 
   const nav = [
-    { href: base, label: "Overview", icon: LayoutGrid, active: pathname === base },
-    { href: `${base}/projects`, label: "Projects", icon: FolderOpen, active: pathname.startsWith(`${base}/projects`) },
-    { href: `${base}/library`, label: "Library", icon: Library, active: pathname.startsWith(`${base}/library`) },
-    { href: `${base}/memory`, label: "Creative library", icon: BrainCircuit, active: pathname.startsWith(`${base}/memory`) },
+    { href: base, label: "Home", icon: House, active: pathname === base },
+    { href: `${base}/explore`, label: "Explore", icon: Compass, active: pathname.startsWith(`${base}/explore`) },
+    { href: `${base}/library`, label: "Library", icon: Library, active: pathname.startsWith(`${base}/library`) || pathname.startsWith(`${base}/memory`) },
+    { href: `${base}/projects`, label: "Create", icon: PenLine, active: pathname.startsWith(`${base}/projects`) },
+    { href: `${base}/brain`, label: "Brain", icon: Brain, active: pathname.startsWith(`${base}/brain`) },
   ];
 
   return (
@@ -115,7 +111,7 @@ function SidebarContent({ workspace, workspaces, user, pinnedProjects, canCreate
 
       <div className="mt-7 px-2.5">
         <div className="flex items-center justify-between px-2.5 pb-1.5">
-          <span className="text-[13px] font-semibold text-muted-foreground">Projects</span>
+          <span className="text-[13px] font-semibold text-muted-foreground">Recent projects</span>
           {canCreateProject && (
             <Link
               href={`${base}/projects/new`}
@@ -150,27 +146,6 @@ function SidebarContent({ workspace, workspaces, user, pinnedProjects, canCreate
             })}
           </ul>
         )}
-      </div>
-
-      <div className="mt-7 px-2.5">
-        <div className="px-2.5 pb-1.5">
-          <span className="text-[13px] font-semibold text-muted-foreground">Production</span>
-        </div>
-        <ul className="flex flex-col gap-0.5">
-          {PRODUCTION_SOON.map(({ label, icon: Icon }) => (
-            <li
-              key={label}
-              title={`${label} arrives in a later phase`}
-              className="flex h-9 cursor-default items-center gap-3 rounded-md px-2.5 text-[15px] text-muted-foreground"
-            >
-              <Icon className="size-[18px]" strokeWidth={1.75} />
-              <span className="flex-1">{label}</span>
-              <span className="rounded bg-sidebar-accent px-1.5 text-[12px] text-sidebar-foreground">
-                Soon<span className="sr-only">, not available yet</span>
-              </span>
-            </li>
-          ))}
-        </ul>
       </div>
 
       <div className="mt-auto flex flex-col gap-0.5 p-2.5">

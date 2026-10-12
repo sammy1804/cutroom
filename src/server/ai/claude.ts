@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { z } from "zod";
 import { AppError } from "@/server/errors";
+import { estimateCost, recordUsage } from "./usage";
 
 /**
  * The single place the app talks to Claude.
@@ -62,6 +63,7 @@ export async function structured<S extends z.ZodType>(opts: StructuredOptions<S>
       system,
       messages: [{ role: "user", content: opts.content }],
     });
+    track(response.usage);
     assertUsable(response);
     if (response.parsed_output == null) {
       throw new AppError("INTERNAL", "Claude returned a response that didn't match the expected format.");
@@ -116,6 +118,7 @@ export async function webResearch(opts: WebResearchOptions): Promise<WebResearch
         messages,
       });
       const message = await stream.finalMessage();
+      track(message.usage);
       assertUsable(message);
 
       for (const block of message.content) {
@@ -136,6 +139,25 @@ export async function webResearch(opts: WebResearchOptions): Promise<WebResearch
   }
 
   return { text: finalText.trim(), sources: [...sources].map(([url, title]) => ({ url, title })) };
+}
+
+type Usage = {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens?: number | null;
+  cache_creation_input_tokens?: number | null;
+  server_tool_use?: { web_search_requests?: number | null } | null;
+};
+
+function track(u: Usage) {
+  const record = {
+    inputTokens: u.input_tokens,
+    outputTokens: u.output_tokens,
+    cacheReadTokens: u.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: u.cache_creation_input_tokens ?? 0,
+    webSearches: u.server_tool_use?.web_search_requests ?? 0,
+  };
+  recordUsage({ provider: "anthropic", model: CLAUDE_MODEL, ...record, costUsd: estimateCost(CLAUDE_MODEL, record) });
 }
 
 function assertUsable(message: { stop_reason: string | null; stop_details?: unknown }) {

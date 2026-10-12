@@ -63,3 +63,32 @@ export interface CreativeSpec {
   animations: SpecAnimation[];
   assets: string[];
 }
+
+/** DIRECTION: a creative territory the project could take. */
+export interface CreativeDirection {
+  id: string;
+  title: string;
+  premise: string;
+  why: string;
+  visualTerritory: string;
+  storytelling: string;
+  tone: string;
+  palette: string[];
+  /** Animation preset ids that suit this direction. */
+  motion: string[];
+  references: string[];
+}
+
+/** One exchange in a Brain thread. */
+export interface BrainTurn {
+  id: string;
+  role: "user" | "brain";
+  /** What the user asked for: a fresh idea, or a follow-up action. */
+  action?: "brainstorm" | "why" | "another" | "research" | "stronger" | "different" | "references";
+  text: string;
+  directions?: CreativeDirection[];
+  /** Brain turns can carry research and challenges, not just directions. */
+  insights?: { title: string; detail: string; source?: string }[];
+  questions?: string[];
+  at: string;
+}

@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { searchAnimations } from "@/server/agents/animation-search";
-import { sourceAssets, type SourcingResult } from "@/server/agents/asset-sourcing";
-import { captureReference } from "@/server/agents/browser-research";
-import { routeCommand } from "@/server/agents/command";
-import { synthesizeCreativeDNA } from "@/server/agents/creative-dna";
-import { runCampaignResearch } from "@/server/agents/research";
+import type { z as Z } from "zod";
+import type { animationSearchOutput } from "@skills/motion/animation-search/skill";
+import type { routeSchema } from "@skills/orchestration/command-route/skill";
+import type { sourcingOutput } from "@skills/production/asset-search/skill";
+import type { dnaSchema } from "@skills/creative/creative-dna/skill";
+import { runSkill } from "@/server/skills/runtime";
 import { creativeDna, project as projectTable, reference } from "@/server/db/schema";
 import { AppError, runAction } from "@/server/errors";
 import { getJob, startJob } from "@/server/jobs/runner";
@@ -33,6 +33,10 @@ import {
 import { getProject } from "@/server/services/projects";
 import { addReferenceSource, enabledAssetProviders, setSourceEnabled } from "@/server/services/sources";
 import { getPreset } from "@/lib/animations/presets";
+import { CHANNELS, OBJECTIVES } from "@/lib/validation";
+
+type SourcingResult = Z.infer<typeof sourcingOutput>;
+type AnimationSearchResult = Z.infer<typeof animationSearchOutput>;
 import type { AnimationRole } from "@/lib/creative-types";
 
 const refresh = (slug: string) => revalidatePath(`/w/${slug}`, "layout");
@@ -48,15 +52,41 @@ export async function jobStatusAction(slug: string, jobId: string) {
 
 /* Research Brain */
 
+/** EXPLORE: research any topic, outside a project. */
+export async function exploreResearchAction(slug: string, question: string) {
+  return runAction(async () => {
+    const ctx = await actionWorkspace(slug);
+    assertCan(ctx, { job: ["create"] });
+    const q = z.string().trim().min(5, "Ask a fuller question.").max(1000).parse(question);
+    const j = await startJob(ctx, { kind: "research", input: { question: q } }, async (report) => {
+      const { output } = await runSkill(ctx, "research.web-research", { question: q }, { reason: `Explore: ${q.slice(0, 80)}`, onProgress: report });
+      return output as Record<string, unknown>;
+    });
+    refresh(slug);
+    return { jobId: j.id };
+  });
+}
+
 export async function startResearchAction(slug: string, campaignId: string, focus?: string) {
   return runAction(async () => {
     const ctx = await actionWorkspace(slug);
     assertCan(ctx, { job: ["create"] });
     const campaign = await getCampaign(ctx, campaignId);
     const project = await getProject(ctx, campaign.projectId);
+    const context = [
+      `Brand / product: ${project.name}${project.websiteUrl ? ` (${project.websiteUrl})` : ""}`,
+      project.description && `About: ${project.description}`,
+      `Campaign: ${campaign.name}; objective: ${OBJECTIVES.find((o) => o.id === campaign.objective)?.label}`,
+      campaign.brief && `Brief: ${campaign.brief}`,
+      campaign.audience && `Audience: ${campaign.audience}`,
+      `Channels: ${campaign.channels.map((c) => CHANNELS.find((x) => x.id === c)?.label ?? c).join(", ") || "not chosen"}; formats: ${campaign.aspectRatios.join(", ") || "any"}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    const question = focus?.trim() || `Research this campaign: audience, competitors, trends and visual references for ${project.name}.`;
     const j = await startJob(ctx, { kind: "research", input: { focus: focus ?? null }, projectId: project.id, campaignId }, async (report) => {
-      const result = await runCampaignResearch(project, campaign, focus?.trim() || undefined, report);
-      return result as unknown as Record<string, unknown>;
+      const { output } = await runSkill(ctx, "research.web-research", { question, context }, { reason: `Research for campaign "${campaign.name}"`, projectId: project.id, onProgress: report });
+      return output as Record<string, unknown>;
     });
     refresh(slug);
     return { jobId: j.id };
@@ -65,15 +95,25 @@ export async function startResearchAction(slug: string, campaignId: string, focu
 
 /* BrowserResearchAgent */
 
-export async function captureReferenceAction(slug: string, input: { url: string; projectId: string; campaignId?: string }) {
+export async function captureReferenceAction(slug: string, input: { url: string; projectId?: string; campaignId?: string; brief?: string }) {
   return runAction(async () => {
     const ctx = await actionWorkspace(slug);
     assertCan(ctx, { job: ["create"] });
     const url = z.string().trim().url("Enter a full URL, including https://").parse(input.url);
+    if (!input.projectId) {
+      const brief = input.brief?.trim() || "General visual research for the studio's reference library.";
+      const j = await startJob(ctx, { kind: "reference_capture", input: { url } }, async (report, jobId) =>
+        (await runSkill<{ referenceIds: string[] }>(ctx, "research.visual-reference-capture", { url, brief, projectId: null, campaignId: null, jobId }, { reason: `Capture ${url}`, onProgress: report })).output,
+      );
+      refresh(slug);
+      return { jobId: j.id };
+    }
     const project = await getProject(ctx, input.projectId);
     const campaign = input.campaignId ? await getCampaign(ctx, input.campaignId) : null;
     const brief = [project.name, project.description, campaign && `Campaign: ${campaign.name}. ${campaign.brief ?? ""}`].filter(Boolean).join("\n");
-    const j = await startJob(ctx, { kind: "reference_capture", input: { url }, projectId: project.id, campaignId: campaign?.id }, async (report, jobId) => captureReference(ctx, { url, brief, projectId: project.id, campaignId: campaign?.id ?? null, jobId }, report));
+    const j = await startJob(ctx, { kind: "reference_capture", input: { url }, projectId: project.id, campaignId: campaign?.id }, async (report, jobId) =>
+      (await runSkill<{ referenceIds: string[] }>(ctx, "research.visual-reference-capture", { url, brief, projectId: project.id, campaignId: campaign?.id ?? null, jobId }, { reason: `Capture ${url}`, projectId: project.id, onProgress: report })).output,
+    );
     refresh(slug);
     return { jobId: j.id };
   });
@@ -105,12 +145,19 @@ export async function buildCreativeDnaAction(slug: string, projectId: string) {
     const memory = (await listMemory(ctx, 40)).filter((m) => m.kind !== "reference");
     const j = await startJob(ctx, { kind: "creative_dna", input: { referenceIds: refs.map((r) => r.id) }, projectId }, async (report) => {
       await report(15);
-      const dna = await synthesizeCreativeDNA({
-        projectName: project.name,
-        projectDescription: project.description,
-        references: refs,
-        companyMemory: memory.map((m) => ({ kind: m.kind, title: m.title, note: m.note })),
-      });
+      const { output } = await runSkill<Z.infer<typeof dnaSchema>>(
+        ctx,
+        "creative.creative-dna",
+        {
+          projectName: project.name,
+          projectDescription: project.description,
+          direction: project.chosenDirection ? `${project.chosenDirection.title}: ${project.chosenDirection.premise}` : undefined,
+          references: refs.map((r) => ({ id: r.id, title: r.title, url: r.url, analysis: r.analysis })),
+          memory: memory.map((m) => ({ kind: m.kind, title: m.title, note: m.note })),
+        },
+        { reason: `Build CreativeDNA for ${project.name}`, projectId },
+      );
+      const dna = output;
       const valid = new Set(refs.map((r) => r.id));
       dna.dimensions = dna.dimensions.map((d) => ({ ...d, evidence: d.evidence.filter((id) => valid.has(id)) }));
       dna.learnedFrom = dna.learnedFrom.filter((l) => valid.has(l.referenceId));
@@ -152,12 +199,11 @@ export async function startAssetSearchAction(slug: string, input: z.input<typeof
     const ctx = await actionWorkspace(slug);
     assertCan(ctx, { job: ["create"] });
     const data = sourcingInput.parse(input);
-    const providers = await enabledAssetProviders(ctx);
-    if (!providers.length) throw new AppError("VALIDATION", "No asset sources are enabled. Turn one on in Settings → Sources.");
+    if (!(await enabledAssetProviders(ctx)).length) throw new AppError("VALIDATION", "No asset sources are enabled. Turn one on in Settings → Sources.");
     const direction = data.projectId ? (await getCreativeDna(ctx, data.projectId))?.dna.headline : undefined;
     const j = await startJob(ctx, { kind: "asset_search", input: data, projectId: data.projectId, campaignId: data.campaignId }, async (report) => {
-      const result = await sourceAssets({ ...data, direction, providers }, report);
-      return result as unknown as Record<string, unknown>;
+      const { output } = await runSkill(ctx, "production.asset-search", { requirement: data.requirement, mediaType: data.mediaType, aspectRatio: data.aspectRatio, direction }, { reason: `Find assets: ${data.requirement.slice(0, 80)}`, projectId: data.projectId, onProgress: report });
+      return output as Record<string, unknown>;
     });
     return { jobId: j.id };
   });
@@ -224,7 +270,7 @@ export async function searchAnimationsAction(slug: string, query: string, opts: 
   return runAction(async () => {
     const ctx = await actionWorkspace(slug);
     const q = z.string().trim().min(2, "Describe the feel you want.").max(400).parse(query);
-    return searchAnimations(q, await animationContext(ctx, opts.projectId));
+    return (await runSkill<AnimationSearchResult>(ctx, "motion.animation-search", { query: q, context: (await animationContext(ctx, opts.projectId)) || undefined }, { reason: `Animation search: ${q.slice(0, 80)}`, projectId: opts.projectId })).output;
   });
 }
 
@@ -287,7 +333,7 @@ export async function addSourceAction(slug: string, input: { name: string; url: 
 /* AI command bar */
 
 export type CommandResult =
-  | { kind: "animations"; query: string; result: Awaited<ReturnType<typeof searchAnimations>> }
+  | { kind: "animations"; query: string; result: AnimationSearchResult }
   | { kind: "assets"; query: string; jobId: string; projectId: string | null }
   | { kind: "references"; query: string; items: { id: string; title: string; url: string; imageKey: string | null; projectId: string | null; status: string }[] }
   | { kind: "research"; jobId: string; campaignId: string; projectId: string }
@@ -303,10 +349,14 @@ export async function commandAction(slug: string, input: string, where: { projec
     const project = projectId ? await getProject(ctx, projectId).catch(() => null) : null;
     const context = [project ? `project "${project.name}"` : "workspace overview", campaign && `campaign "${campaign.name}"`].filter(Boolean).join(", ");
 
-    const route = await routeCommand(text, context);
+    const route = (await runSkill<Z.infer<typeof routeSchema>>(ctx, "orchestration.command-route", { text, where: context }, { reason: "Command bar", projectId: project?.id })).output;
     switch (route.intent) {
       case "animations":
-        return { kind: "animations", query: route.query, result: await searchAnimations(route.query, await animationContext(ctx, project?.id)) };
+        return {
+          kind: "animations",
+          query: route.query,
+          result: (await runSkill<AnimationSearchResult>(ctx, "motion.animation-search", { query: route.query, context: (await animationContext(ctx, project?.id)) || undefined }, { reason: "Command bar: animations", projectId: project?.id })).output,
+        };
       case "assets": {
         const res = await startAssetSearchAction(slug, {
           requirement: route.query,

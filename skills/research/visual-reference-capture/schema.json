@@ -1,0 +1,56 @@
+{
+  "id": "research.visual-reference-capture",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "format": "uri"
+      },
+      "brief": {
+        "type": "string",
+        "maxLength": 4000
+      },
+      "projectId": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "campaignId": {
+        "default": null,
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "jobId": {
+        "default": "",
+        "type": "string"
+      }
+    },
+    "required": [
+      "url",
+      "brief",
+      "projectId"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "referenceIds": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "referenceIds"
+    ],
+    "additionalProperties": false
+  }
+}

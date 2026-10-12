@@ -6,6 +6,9 @@ import { AnimationsPanel } from "@/components/library/animations-panel";
 import { AssetSourcing } from "@/components/library/asset-sourcing";
 import { LibraryTabs, LIBRARY_TABS, type LibraryTab } from "@/components/library/library-tabs";
 import { MyAssets } from "@/components/library/my-assets";
+import { CompositionGrid } from "@/components/library/compositions";
+import { composition } from "@/server/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { ReferenceReels } from "@/components/library/reference-reels";
 import { ReferenceGrid } from "@/components/library/references";
 import { PageContainer, PageHeader } from "@/components/page-header";
@@ -52,6 +55,9 @@ export default async function LibraryPage({
       />
       </>
     );
+  } else if (tab === "compositions") {
+    const rows = await ctx.db.select().from(composition).where(eq(composition.organizationId, ctx.organization.id)).orderBy(desc(composition.createdAt)).limit(60);
+    body = <CompositionGrid slug={slug} canCreate={can(ctx.role, { project: ["create"] })} items={rows.map((r) => ({ id: r.id, name: r.name, description: r.description, spec: r.spec }))} />;
   } else if (tab === "free" || tab === "audio") {
     body = (
       <>
@@ -87,10 +93,10 @@ export default async function LibraryPage({
       <PageHeader
         eyebrow={ctx.organization.name}
         title="Library"
-        description="Animations, usable assets and visual references, shared across every project. Drag any item onto the editor timeline."
+        description="Animations, templates, usable assets and visual references, shared across every project."
       />
       <LibraryTabs base={base} active={tab} />
-      {tab !== "assets" && tab !== "references" && <ClaudeNotice />}
+      {(tab === "animations" || tab === "free" || tab === "audio") && <ClaudeNotice />}
       {body}
     </PageContainer>
   );

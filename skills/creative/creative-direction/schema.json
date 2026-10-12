@@ -1,0 +1,142 @@
+{
+  "id": "creative.creative-direction",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "idea": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 3000
+      },
+      "audience": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "format": {
+        "default": "9:16",
+        "type": "string"
+      },
+      "research": {
+        "description": "Research summary and insights",
+        "type": "string",
+        "maxLength": 6000
+      },
+      "references": {
+        "default": [],
+        "maxItems": 16,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "learnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "motion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "title",
+            "learnings"
+          ]
+        }
+      },
+      "memory": {
+        "default": [],
+        "description": "Company's previously approved creative decisions",
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "idea"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "directions": {
+        "minItems": 1,
+        "maxItems": 4,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Short slug, e.g. 'invisible-mountain'"
+            },
+            "title": {
+              "type": "string"
+            },
+            "premise": {
+              "type": "string"
+            },
+            "why": {
+              "type": "string"
+            },
+            "visualTerritory": {
+              "type": "string"
+            },
+            "storytelling": {
+              "type": "string"
+            },
+            "tone": {
+              "type": "string"
+            },
+            "palette": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "3–5 hex colours"
+            },
+            "motion": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Animation preset ids from the catalog"
+            },
+            "references": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Real campaigns, artists or works to look at"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "premise",
+            "why",
+            "visualTerritory",
+            "storytelling",
+            "tone",
+            "palette",
+            "motion",
+            "references"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "directions"
+    ],
+    "additionalProperties": false
+  }
+}

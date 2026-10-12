@@ -2,11 +2,13 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export const LIBRARY_TABS = [
+  { id: "animations", label: "Animations" },
+  { id: "compositions", label: "Templates" },
   { id: "assets", label: "My assets" },
   { id: "free", label: "Free assets" },
   { id: "references", label: "References" },
-  { id: "animations", label: "Animations" },
   { id: "audio", label: "Audio" },
+  { id: "memory", label: "Creative memory" },
 ] as const;
 
 export type LibraryTab = (typeof LIBRARY_TABS)[number]["id"];
@@ -18,7 +20,7 @@ export function LibraryTabs({ base, active, counts }: { base: string; active: Li
       {LIBRARY_TABS.map((t) => (
         <Link
           key={t.id}
-          href={`${base}?tab=${t.id}`}
+          href={t.id === "memory" ? base.replace("/library", "/memory") : `${base}?tab=${t.id}`}
           aria-current={active === t.id ? "page" : undefined}
           className={cn(
             "-mb-px flex shrink-0 items-center gap-2 border-b-2 border-transparent px-3 pb-3 text-[15px] text-muted-foreground transition-colors hover:text-foreground",

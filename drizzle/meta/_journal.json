@@ -15,6 +15,13 @@
       "when": 1791747959265,
       "tag": "0001_creative_systems",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791811035409,
+      "tag": "0002_skills_journey",
+      "breakpoints": true
     }
   ]
 }

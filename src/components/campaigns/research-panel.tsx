@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useJob } from "@/hooks/use-job";
 import { startResearchAction } from "@/server/actions/creative";
-import type { ResearchReport } from "@/server/agents/research";
+import { researchIdeaAction } from "@/server/actions/journey";
+import type { ResearchReport } from "@/lib/skill-types";
 
 export function ResearchPanel({
   slug,
   campaignId,
+  projectId,
   report,
   activeJobId,
   lastError,
@@ -21,7 +23,9 @@ export function ResearchPanel({
   ranAt,
 }: {
   slug: string;
-  campaignId: string;
+  /** Research a campaign brief, or (with projectId) a project's idea. */
+  campaignId?: string;
+  projectId?: string;
   report: ResearchReport | null;
   activeJobId?: string;
   lastError?: string | null;
@@ -42,7 +46,7 @@ export function ResearchPanel({
           onSubmit={(e) => {
             e.preventDefault();
             startTransition(async () => {
-              const res = await startResearchAction(slug, campaignId, focus);
+              const res = campaignId ? await startResearchAction(slug, campaignId, focus) : await researchIdeaAction(slug, projectId!, focus);
               if (!res.ok) return void toast.error(res.message);
               setJobId(res.data.jobId);
             });

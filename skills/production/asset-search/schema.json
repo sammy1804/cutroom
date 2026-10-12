@@ -1,0 +1,230 @@
+{
+  "id": "production.asset-search",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "requirement": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 600
+      },
+      "mediaType": {
+        "type": "string",
+        "enum": [
+          "image",
+          "video",
+          "audio"
+        ]
+      },
+      "aspectRatio": {
+        "type": "string"
+      },
+      "direction": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "requirement"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "requirement": {
+        "type": "string"
+      },
+      "plan": {
+        "type": "object",
+        "properties": {
+          "mediaType": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video",
+              "audio"
+            ]
+          },
+          "orientation": {
+            "type": "string"
+          },
+          "compositionIntent": {
+            "type": "string"
+          },
+          "concepts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "avoid": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "mediaType",
+          "orientation",
+          "compositionIntent",
+          "concepts",
+          "avoid"
+        ],
+        "additionalProperties": false
+      },
+      "candidates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string"
+            },
+            "externalId": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "mediaType": {
+              "type": "string",
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ]
+            },
+            "thumbnailUrl": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "mediaUrl": {
+              "type": "string"
+            },
+            "pageUrl": {
+              "type": "string"
+            },
+            "width": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "height": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "durationMs": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "rights": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string"
+                },
+                "creator": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "license": {
+                  "type": "string"
+                },
+                "licenseUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "attributionRequired": {
+                  "type": "boolean"
+                },
+                "commercialUse": {
+                  "type": "boolean"
+                },
+                "modificationAllowed": {
+                  "type": "boolean"
+                },
+                "collectedAt": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source",
+                "sourceUrl",
+                "creator",
+                "license",
+                "licenseUrl",
+                "attributionRequired",
+                "commercialUse",
+                "modificationAllowed",
+                "collectedAt"
+              ],
+              "additionalProperties": false
+            },
+            "score": {
+              "type": "number"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "provider",
+            "externalId",
+            "title",
+            "mediaType",
+            "thumbnailUrl",
+            "mediaUrl",
+            "pageUrl",
+            "width",
+            "height",
+            "durationMs",
+            "rights",
+            "score",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "searched": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "unavailable": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "requirement",
+      "plan",
+      "candidates",
+      "searched",
+      "unavailable"
+    ],
+    "additionalProperties": false
+  }
+}

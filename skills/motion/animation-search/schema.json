@@ -1,0 +1,123 @@
+{
+  "id": "motion.animation-search",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 400
+      },
+      "context": {
+        "type": "string",
+        "maxLength": 6000
+      }
+    },
+    "required": [
+      "query"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "interpretation": {
+        "type": "string"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "presetId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "why": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": [
+                  "number",
+                  "string",
+                  "boolean"
+                ]
+              }
+            }
+          },
+          "required": [
+            "presetId",
+            "name",
+            "why",
+            "params"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "combinations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "why": {
+              "type": "string"
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "presetId": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": [
+                        "number",
+                        "string",
+                        "boolean"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "presetId",
+                  "params"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "name",
+            "why",
+            "layers"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "interpretation",
+      "recommendations",
+      "combinations"
+    ],
+    "additionalProperties": false
+  }
+}

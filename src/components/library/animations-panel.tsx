@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteCustomPresetAction, searchAnimationsAction } from "@/server/actions/creative";
-import type { AnimationSearchResult } from "@/server/agents/animation-search";
+import type { AnimationSearchResult } from "@/lib/skill-types";
 import { ANIMATION_PRESETS, CATEGORY_LABEL, getPreset } from "@/lib/animations/presets";
 import type { AnimationCategory, ParamValues } from "@/lib/animations/types";
 import { setDragItem } from "@/lib/drag";

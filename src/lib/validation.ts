@@ -96,7 +96,7 @@ export const campaignStatusSchema = z.enum(["draft", "in_production", "in_review
 
 export const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
-  role: z.enum(["admin", "editor", "viewer"]),
+  role: z.enum(["admin", "designer", "marketer", "viewer"]),
 });
 
 export type ProjectInput = z.input<typeof projectSchema>;

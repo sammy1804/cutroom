@@ -44,6 +44,21 @@ export const roles = {
     job: ["create", "cancel"],
     providers: ["manage"],
   }),
+  /** Makes the work: projects, direction, story, design and motion. */
+  designer: ac.newRole({
+    project: ["create", "update", "archive"],
+    campaign: ["create", "update", "archive"],
+    asset: ["upload", "delete"],
+    job: ["create", "cancel"],
+  }),
+  /** Runs research and campaigns; same creative rights as a designer. */
+  marketer: ac.newRole({
+    project: ["create", "update", "archive"],
+    campaign: ["create", "update", "archive"],
+    asset: ["upload", "delete"],
+    job: ["create", "cancel"],
+  }),
+  /** Legacy name for designer, kept so existing memberships keep working. */
   editor: ac.newRole({
     project: ["create", "update", "archive"],
     campaign: ["create", "update", "archive"],
@@ -54,12 +69,14 @@ export const roles = {
 };
 
 export type Role = keyof typeof roles;
-export const ROLE_ORDER: Role[] = ["owner", "admin", "editor", "viewer"];
+export const ROLE_ORDER: Role[] = ["owner", "admin", "designer", "marketer", "viewer"];
 
 export const ROLE_META: Record<Role, { label: string; description: string }> = {
   owner: { label: "Owner", description: "Full control, including billing and deleting the workspace." },
   admin: { label: "Admin", description: "Manage members, providers and all projects." },
-  editor: { label: "Editor", description: "Create and edit projects, campaigns and assets." },
+  designer: { label: "Designer", description: "Create projects and shape direction, story, design and motion." },
+  marketer: { label: "Marketer", description: "Run research and campaigns, and create projects." },
+  editor: { label: "Designer", description: "Create projects and shape direction, story, design and motion." },
   viewer: { label: "Viewer", description: "Read-only access to projects and campaigns." },
 };
 
@@ -89,5 +106,6 @@ export function can(roleValue: string, permission: Permission): boolean {
 /** The highest-ranked role, for display. */
 export function primaryRole(roleValue: string): Role {
   const held = parseRoles(roleValue);
+  if (held.includes("editor") && !held.some((r) => r === "owner" || r === "admin")) return "designer";
   return ROLE_ORDER.find((r) => held.includes(r)) ?? "viewer";
 }

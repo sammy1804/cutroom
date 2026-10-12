@@ -1,7 +1,7 @@
 import "server-only";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { z } from "zod";
-import { imageBlock, structured } from "@/server/ai/claude";
+import type { AIProvider } from "@/server/ai/provider";
 import { reference, type Reference } from "@/server/db/schema";
 import { getProvider } from "@/server/providers/registry";
 import type { WorkspaceContext } from "@/server/services/context";
@@ -45,6 +45,9 @@ export interface CaptureInput {
   projectId: string | null;
   campaignId: string | null;
   jobId: string;
+  /** From the skill: its SKILL.md instructions and the AI provider to use. */
+  instructions: string;
+  ai: AIProvider;
 }
 
 export async function captureReference(
@@ -76,15 +79,12 @@ export async function captureReference(
     const pageTitle = await page.title();
     await report(45);
 
-    const analysis = await structured({
+    const analysis = await input.ai.structured({
       schema: analysisSchema,
       effort: "medium",
-      system:
-        "You are an art director doing visual research for a video campaign. Analyse rendered web pages as design " +
-        "references: composition, colour, typography, motion, art direction, photography. You are learning direction " +
-        "from them, never copying them. Be concrete and visual.",
+      system: input.instructions,
       content: [
-        ...chunks.map((c) => imageBlock(c, "image/jpeg")),
+        ...chunks.map((c) => ({ type: "image" as const, data: new Uint8Array(c), mediaType: "image/jpeg" as const })),
         {
           type: "text",
           text:
@@ -117,7 +117,7 @@ export async function captureReference(
         analysis: meta,
         tags: analysis.tags.map((t) => t.toLowerCase()),
         rank: clampRank(analysis.relevance),
-        jobId: input.jobId,
+        jobId: input.jobId || null,
         createdById: ctx.userId,
       })
       .returning();
@@ -148,7 +148,7 @@ export async function captureReference(
           analysis: { ...meta, summary: section.why, sections: [] },
           tags: analysis.tags.map((t) => t.toLowerCase()),
           rank: clampRank(analysis.relevance - 5),
-          jobId: input.jobId,
+          jobId: input.jobId || null,
           createdById: ctx.userId,
         })
         .returning();

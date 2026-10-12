@@ -1,0 +1,62 @@
+{
+  "id": "orchestration.command-route",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 600
+      },
+      "where": {
+        "type": "string",
+        "maxLength": 400
+      }
+    },
+    "required": [
+      "text",
+      "where"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "intent": {
+        "type": "string",
+        "enum": [
+          "animations",
+          "assets",
+          "references",
+          "research",
+          "creative_dna",
+          "answer"
+        ]
+      },
+      "query": {
+        "type": "string"
+      },
+      "mediaType": {
+        "type": "string",
+        "enum": [
+          "image",
+          "video",
+          "audio",
+          "any"
+        ]
+      },
+      "answer": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "intent",
+      "query",
+      "mediaType",
+      "answer"
+    ],
+    "additionalProperties": false
+  }
+}

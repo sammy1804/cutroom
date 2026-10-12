@@ -28,7 +28,7 @@ export function TextFx(props: RenderProps) {
   const text = content?.text ?? SAMPLE_TEXT.text;
   const e = progress(props);
   const fx = String(config.fx);
-  const base: CSSProperties = { ...textStyle, position: "relative" };
+  const base: CSSProperties = { ...textStyle, position: "relative", ...content?.style };
   let node: ReactNode = null;
 
   switch (fx) {
@@ -89,7 +89,7 @@ export function TextFx(props: RenderProps) {
           <span style={{ position: "relative" }}>{text}</span>
         </div>
       );
-      return <AbsoluteFill style={{ ...center, background: "#fbfaf7" }}>{node}</AbsoluteFill>;
+      return <AbsoluteFill style={{ ...center, background: content?.bare ? undefined : "#fbfaf7" }}>{node}</AbsoluteFill>;
     }
     case "strike": {
       const lc = str(params, "line", "#e5484d");
@@ -133,7 +133,7 @@ export function TextFx(props: RenderProps) {
       break;
     }
   }
-  return <AbsoluteFill style={{ ...center, ...darkStage }}>{node}</AbsoluteFill>;
+  return <AbsoluteFill style={{ ...center, ...(content?.bare ? {} : darkStage) }}>{node}</AbsoluteFill>;
 }
 
 /* ─── Image effects ─────────────────────────────────────────────────────── */

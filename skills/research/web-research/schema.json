@@ -1,0 +1,159 @@
+{
+  "id": "research.web-research",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "question": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 2000,
+        "description": "What to research"
+      },
+      "context": {
+        "description": "Brief, brand, audience and channels",
+        "type": "string",
+        "maxLength": 4000
+      }
+    },
+    "required": [
+      "question"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "string"
+      },
+      "audience": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "insight": {
+              "type": "string"
+            },
+            "implication": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "insight",
+            "implication"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "competitors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "approach": {
+              "type": "string"
+            },
+            "opening": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "url",
+            "approach",
+            "opening"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "trends": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "trend": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "trend",
+            "evidence"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "hooks": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "visualDirections": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "referenceLeads": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "why": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "why"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "sources": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "title"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "summary",
+      "audience",
+      "competitors",
+      "trends",
+      "hooks",
+      "visualDirections",
+      "referenceLeads",
+      "sources"
+    ],
+    "additionalProperties": false
+  }
+}

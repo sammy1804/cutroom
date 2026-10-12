@@ -61,6 +61,30 @@ Phase 1 implements only `storage/local`. Every other capability reports `unconfi
 `JobQueue` (enqueue/cancel) and `JobHandler` contracts, keyed by `job.kind`. The backend (Postgres SKIP LOCKED,
 Inngest, Trigger.dev…) is chosen in Phase 2; callers won't change.
 
+## Skills → agents → workflows
+
+```
+USER → product UI → server actions (orchestration) → Skill Registry → skills → providers / browser / DB
+```
+
+- **Skills** live in `skills/` (see `docs/SKILLS.md`): 13 ready, 9 planned (video, audio, OCR, motion analysis,
+  market map, performance, export). Discovery (`src/server/skills/registry.ts`) is lexical plus typed I/O
+  (`consumes` / `produces`), so finding skills costs nothing and only the chosen skill's instructions are loaded.
+- **Runtime** (`src/server/skills/runtime.ts`): validate → cache → run (retry, timeout, usage capture via
+  AsyncLocalStorage) → validate → `skill_run` row. **Activity** in Settings shows every run and its cost.
+- **Providers**: skills get an `AIProvider` (`src/server/ai/provider.ts`); Claude is the implementation.
+- **Agents/workflows** are currently the server actions that chain skills (e.g. storyboard → spec-compile).
+  They become declarative definitions once more than one product flow reuses the same chain.
+
+## Project journey and CreativeSpec
+
+A project is one object moving through **Idea → Explore → Direction → Story → Design → Motion → Final**
+(`project.stage`). `project.spec` is a `CreativeSpec` (`src/lib/creative-spec/schema.ts`): scenes with stable ids
+(`scene_02`) holding elements with stable ids (`scene_02.headline`), each pointing at an animation preset.
+`SpecComposition` renders it with Remotion; the editor preview and the future render use the same component, so
+the spec, not an MP4, is the source of truth. Saved specs become library **Templates** (`composition` table).
+**Brain** (`brain_thread`) is a brainstorming conversation whose directions can become projects.
+
 ## Creative systems (Phase 2)
 
 The flow is one connected pipeline, not separate features:

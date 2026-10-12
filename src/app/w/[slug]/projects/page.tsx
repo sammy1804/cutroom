@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { getWorkspace } from "@/server/session";
 import { listProjects } from "@/server/services/projects";
 
-export const metadata: Metadata = { title: "Projects" };
+export const metadata: Metadata = { title: "Create" };
 
 export default async function ProjectsPage({
   params,
@@ -31,8 +31,8 @@ export default async function ProjectsPage({
     <PageContainer className="space-y-6">
       <PageHeader
         eyebrow={ctx.organization.name}
-        title="Projects"
-        description="Brands and products your team produces content for."
+        title="Create"
+        description="Every project moves from idea to final piece: explore, choose a direction, shape the story, design, animate."
         actions={
           canCreate && (
             <Button asChild>

@@ -9,7 +9,7 @@ import { AnimationPreview } from "@/components/library/animation-preview";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useJob } from "@/hooks/use-job";
 import { commandAction, type CommandResult } from "@/server/actions/creative";
-import type { SourcingResult } from "@/server/agents/asset-sourcing";
+import type { SourcingResult } from "@/lib/skill-types";
 import { getPreset } from "@/lib/animations/presets";
 import { storageUrl } from "@/lib/drag";
 import { cn } from "@/lib/utils";

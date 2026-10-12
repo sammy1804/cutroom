@@ -1,0 +1,235 @@
+{
+  "id": "creative.brainstorm",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "idea": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 3000
+      },
+      "action": {
+        "default": "brainstorm",
+        "type": "string",
+        "enum": [
+          "brainstorm",
+          "why",
+          "another",
+          "research",
+          "stronger",
+          "different",
+          "references"
+        ]
+      },
+      "message": {
+        "type": "string",
+        "maxLength": 2000
+      },
+      "focus": {
+        "description": "The direction a follow-up refers to",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Short slug, e.g. 'invisible-mountain'"
+          },
+          "title": {
+            "type": "string"
+          },
+          "premise": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "visualTerritory": {
+            "type": "string"
+          },
+          "storytelling": {
+            "type": "string"
+          },
+          "tone": {
+            "type": "string"
+          },
+          "palette": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "3–5 hex colours"
+          },
+          "motion": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Animation preset ids from the catalog"
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Real campaigns, artists or works to look at"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "premise",
+          "why",
+          "visualTerritory",
+          "storytelling",
+          "tone",
+          "palette",
+          "motion",
+          "references"
+        ]
+      },
+      "history": {
+        "default": [],
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": [
+                "user",
+                "brain"
+              ]
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "role",
+            "text"
+          ]
+        }
+      },
+      "previousTitles": {
+        "default": [],
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "idea"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "reply": {
+        "type": "string"
+      },
+      "directions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Short slug, e.g. 'invisible-mountain'"
+            },
+            "title": {
+              "type": "string"
+            },
+            "premise": {
+              "type": "string"
+            },
+            "why": {
+              "type": "string"
+            },
+            "visualTerritory": {
+              "type": "string"
+            },
+            "storytelling": {
+              "type": "string"
+            },
+            "tone": {
+              "type": "string"
+            },
+            "palette": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "3–5 hex colours"
+            },
+            "motion": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Animation preset ids from the catalog"
+            },
+            "references": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Real campaigns, artists or works to look at"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "premise",
+            "why",
+            "visualTerritory",
+            "storytelling",
+            "tone",
+            "palette",
+            "motion",
+            "references"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "insights": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "title",
+            "detail"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "questions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "reply",
+      "directions",
+      "insights",
+      "questions"
+    ],
+    "additionalProperties": false
+  }
+}

@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Dna, ExternalLink, Images, Megaphone } from "lucide-react";
+import { Dna, ExternalLink, Megaphone } from "lucide-react";
 import { ClaudeNotice } from "@/components/claude-notice";
 import { DnaActions } from "@/components/creative/dna-actions";
 import { DnaView } from "@/components/creative/dna-view";
-import { MyAssets } from "@/components/library/my-assets";
 import { ReferenceCapture, ReferenceGrid } from "@/components/library/references";
 import { cn } from "@/lib/utils";
+import { DirectionsPanel } from "@/components/journey/directions-panel";
+import { IdeaForm } from "@/components/journey/idea-form";
+import { SpecWorkbench } from "@/components/journey/spec-workbench";
+import { StoryStart } from "@/components/journey/story-start";
+import { ResearchPanel } from "@/components/campaigns/research-panel";
+import { JOURNEY, stageIndex, stageInfo, type JourneyStage } from "@/lib/journey";
+import { storageUrl } from "@/lib/drag";
+import { isActive, recentJobs } from "@/server/jobs/runner";
 import { isClaudeConfigured } from "@/server/ai/claude";
-import { latestJob } from "@/server/jobs/runner";
 import { getCreativeDna, listAssets, listReferences } from "@/server/services/library";
-import type { ResearchReport } from "@/server/agents/research";
+import type { ResearchReport } from "@/lib/skill-types";
 import { NewCampaignDialog } from "@/components/campaigns/campaign-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-header";
@@ -43,23 +49,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: project.name };
 }
 
-const TABS = [
-  { id: "campaigns", label: "Campaigns" },
-  { id: "references", label: "References" },
-  { id: "dna", label: "CreativeDNA" },
-  { id: "assets", label: "Assets" },
-] as const;
-type Tab = (typeof TABS)[number]["id"];
+/** Old ?tab= links map onto journey stages. */
+const LEGACY_TAB: Record<string, JourneyStage> = { references: "explore", dna: "direction", assets: "design", campaigns: "final" };
 
-export default async function ProjectPage({ params, searchParams }: { params: Params; searchParams: Promise<{ tab?: string }> }) {
+export default async function ProjectPage({ params, searchParams }: { params: Params; searchParams: Promise<{ tab?: string; stage?: string }> }) {
   const { slug, projectId } = await params;
-  const requested = (await searchParams).tab;
-  const tab: Tab = TABS.some((t) => t.id === requested) ? (requested as Tab) : "campaigns";
+  const sp = await searchParams;
   const { ctx, project } = await load(slug, projectId);
+  const requested = sp.stage ?? (sp.tab ? LEGACY_TAB[sp.tab] : undefined);
+  const stage: JourneyStage = JOURNEY.some((j) => j.id === requested) ? (requested as JourneyStage) : project.stage;
   const campaigns = await listCampaigns(ctx, project.id);
   const base = `/w/${slug}/projects/${project.id}`;
   const canCreate = can(ctx.role, { campaign: ["create"] }) && project.status === "active";
-  const canEditAssets = can(ctx.role, { asset: ["upload"] });
+  const canEditProject = can(ctx.role, { project: ["update"] });
 
   return (
     <PageContainer className="space-y-8">
@@ -94,7 +96,6 @@ export default async function ProjectPage({ params, searchParams }: { params: Pa
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {canCreate && <NewCampaignDialog slug={slug} projectId={project.id} />}
             <ProjectSettingsMenu
               slug={slug}
               project={{
@@ -115,31 +116,33 @@ export default async function ProjectPage({ params, searchParams }: { params: Pa
         </header>
       </div>
 
-      <nav className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0" aria-label="Project sections">
-        {TABS.map((t) => (
-          <Link
-            key={t.id}
-            href={t.id === "campaigns" ? base : `${base}?tab=${t.id}`}
-            aria-current={tab === t.id ? "page" : undefined}
-            className={cn(
-              "-mb-px shrink-0 border-b-2 border-transparent px-3 pb-3 text-[15px] text-muted-foreground transition-colors hover:text-foreground",
-              tab === t.id && "border-foreground font-medium text-foreground",
-            )}
-          >
-            {t.label}
-            {t.id === "campaigns" && <span className="tabular ml-2 rounded-full bg-muted px-1.5 font-mono text-xs">{campaigns.length}</span>}
-          </Link>
-        ))}
-      </nav>
+      <JourneyNav base={base} current={project.stage} viewing={stage} />
 
-      {tab === "campaigns" && (
+      <section className="space-y-6" aria-labelledby="stage-question">
+        <div className="space-y-1">
+          <p className="label-meta">
+            {String(stageIndex(stage) + 1).padStart(2, "0")} · {stageInfo(stage).label}
+          </p>
+          <h2 id="stage-question" className="text-2xl font-semibold tracking-tight sm:text-[28px]">
+            {stageInfo(stage).question}
+          </h2>
+        </div>
+        <StagePanel slug={slug} stage={stage} project={project} canEdit={canEditProject} />
+      </section>
+
+      {stage === "final" && (
+        <section className="space-y-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-xl font-semibold">Campaign deliverables</h2>
+            {canCreate && <NewCampaignDialog slug={slug} projectId={project.id} />}
+          </div>
       <section className="space-y-3">
         {campaigns.length === 0 ? (
           <EmptyState
             icon={<Megaphone />}
             title="No campaigns in this project"
             description="A campaign holds one brief and its deliverables: the channels, formats and, in upcoming phases, the scripts, generated media and renders."
-            action={canCreate ? <NewCampaignDialog slug={slug} projectId={project.id} /> : undefined}
+            
           />
         ) : (
           <ul className="grid gap-3 md:grid-cols-2">
@@ -175,10 +178,8 @@ export default async function ProjectPage({ params, searchParams }: { params: Pa
           </ul>
         )}
       </section>
+        </section>
       )}
-      {tab === "references" && <ReferencesTab slug={slug} projectId={project.id} canEdit={canEditAssets} />}
-      {tab === "dna" && <DnaTab slug={slug} projectId={project.id} canEdit={canEditAssets} />}
-      {tab === "assets" && <AssetsTab slug={slug} projectId={project.id} projectName={project.name} canEdit={canEditAssets} />}
     </PageContainer>
   );
 }
@@ -187,43 +188,6 @@ async function approvedNumbering(slug: string, projectId: string) {
   const ctx = await getWorkspace(slug);
   const approved = (await listReferences(ctx, { projectId, status: "approved", limit: 200 })).sort((a, b) => +a.createdAt - +b.createdAt);
   return new Map(approved.map((r, i) => [r.id, i + 1]));
-}
-
-async function ReferencesTab({ slug, projectId, canEdit }: { slug: string; projectId: string; canEdit: boolean }) {
-  const ctx = await getWorkspace(slug);
-  const [refs, numbers, research] = await Promise.all([
-    listReferences(ctx, { projectId, limit: 200 }),
-    approvedNumbering(slug, projectId),
-    latestJob(ctx, { kind: "research", projectId }),
-  ]);
-  const leads = research?.status === "succeeded" ? ((research.output as unknown as ResearchReport).referenceLeads ?? []) : [];
-  const summaries = refs.map((r) => ({ ...r, number: numbers.get(r.id) }));
-  const approved = summaries.filter((r) => r.status === "approved").sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
-  const review = summaries.filter((r) => r.status !== "approved");
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <p className="max-w-[70ch] text-[15px] leading-relaxed text-muted-foreground">
-          The browser research agent opens approved pages, captures them and analyses their composition, colour, type and motion. References teach
-          direction and are never used as production assets.
-        </p>
-      </div>
-      <ClaudeNotice />
-      {canEdit && <ReferenceCapture slug={slug} projectId={projectId} aiEnabled={isClaudeConfigured()} suggestions={leads} />}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">
-          Approved <span className="tabular ml-1 text-sm text-muted-foreground">{approved.length}</span>
-        </h2>
-        <ReferenceGrid slug={slug} canEdit={canEdit} references={approved} emptyText="Approve references you want the CreativeDNA to learn from." />
-      </section>
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">
-          To review <span className="tabular ml-1 text-sm text-muted-foreground">{review.length}</span>
-        </h2>
-        <ReferenceGrid slug={slug} canEdit={canEdit} references={review} emptyText="Captured references appear here, ranked by relevance to the brief." />
-      </section>
-    </div>
-  );
 }
 
 async function DnaTab({ slug, projectId, canEdit }: { slug: string; projectId: string; canEdit: boolean }) {
@@ -247,28 +211,168 @@ async function DnaTab({ slug, projectId, canEdit }: { slug: string; projectId: s
   );
 }
 
-async function AssetsTab({ slug, projectId, projectName, canEdit }: { slug: string; projectId: string; projectName: string; canEdit: boolean }) {
-  const ctx = await getWorkspace(slug);
-  const assets = await listAssets(ctx, { projectId });
-  if (!assets.length) {
-    return (
-      <EmptyState
-        icon={<Images />}
-        title="No assets in this project"
-        description="Find licence-checked photos, footage and audio, then add the ones that fit. Every asset keeps its licence record."
-        action={
-          <Link href={`/w/${slug}/library?tab=free&project=${projectId}`} className="text-sm font-medium text-tally underline-offset-4 hover:underline">
-            Find free assets →
-          </Link>
-        }
-      />
-    );
-  }
+function JourneyNav({ base, current, viewing }: { base: string; current: string; viewing: JourneyStage }) {
+  const reached = stageIndex(current);
   return (
-    <MyAssets
-      slug={slug}
-      canEdit={canEdit}
-      assets={assets.map((a) => ({ id: a.id, name: a.name, kind: a.kind, usageStatus: a.usageStatus, storageKey: a.storageKey, externalUrl: a.externalUrl, thumbnailUrl: a.thumbnailUrl, rights: a.rights, projectName }))}
-    />
+    <nav aria-label="Project journey" className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+      <ol className="flex min-w-max items-center gap-1">
+        {JOURNEY.map((step, i) => {
+          const done = i < reached;
+          const isView = step.id === viewing;
+          return (
+            <li key={step.id} className="flex items-center gap-1">
+              {i > 0 && <span aria-hidden className={cn("h-px w-4 sm:w-6", i <= reached ? "bg-tally" : "bg-border")} />}
+              <Link
+                href={`${base}?stage=${step.id}`}
+                aria-current={isView ? "step" : undefined}
+                className={cn(
+                  "flex items-center gap-2 rounded-full px-3 py-1.5 text-[15px] transition-colors hover:bg-hover",
+                  isView && "bg-foreground text-background hover:bg-foreground",
+                  !isView && i <= reached && "text-foreground",
+                  !isView && i > reached && "text-muted-foreground",
+                )}
+              >
+                <span className={cn("flex size-5 items-center justify-center rounded-full text-[11px] font-semibold", isView ? "bg-background text-foreground" : done ? "bg-tally text-tally-foreground" : i === reached ? "ring-2 ring-tally" : "ring-1 ring-border")}>
+                  {i + 1}
+                </span>
+                {step.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
+
+type ProjectRow = Awaited<ReturnType<typeof getProject>>;
+
+async function StagePanel({ slug, stage, project, canEdit }: { slug: string; stage: JourneyStage; project: ProjectRow; canEdit: boolean }) {
+  const ctx = await getWorkspace(slug);
+  const aiEnabled = isClaudeConfigured();
+  const next = (to: JourneyStage, label: string) => (
+    <Link href={`/w/${slug}/projects/${project.id}?stage=${to}`} className="inline-flex items-center gap-1.5 text-[15px] font-medium text-tally underline-offset-4 hover:underline">
+      {label} →
+    </Link>
+  );
+
+  switch (stage) {
+    case "idea":
+      return <IdeaForm slug={slug} projectId={project.id} canEdit={canEdit} initial={{ idea: project.idea ?? "", audience: project.audience ?? "", format: project.format }} />;
+
+    case "explore": {
+      if (!project.idea) return <p className="text-[15px] text-muted-foreground">Write the idea first. {next("idea", "Go to Idea")}</p>;
+      const jobs = await recentJobs(ctx, { kind: "research", projectId: project.id }, 10);
+      const ideaJobs = jobs.filter((j) => !j.campaignId);
+      const latest = ideaJobs[0] ?? null;
+      const good = ideaJobs.find((j) => j.status === "succeeded") ?? null;
+      return (
+        <div className="space-y-10">
+          <ClaudeNotice />
+          <div className="space-y-3">
+            <h3 className="text-xl font-semibold">Research</h3>
+            <ResearchPanel
+              slug={slug}
+              projectId={project.id}
+              report={good ? (good.output as unknown as ResearchReport) : null}
+              activeJobId={isActive(latest) ? latest!.id : undefined}
+              lastError={latest?.status === "failed" ? latest.error : null}
+              ranAt={good ? relativeTime(good.finishedAt ?? good.createdAt) : undefined}
+              aiEnabled={aiEnabled}
+              canRun={canEdit}
+            />
+          </div>
+          <ReferencesSection slug={slug} projectId={project.id} canEdit={canEdit} leads={good ? ((good.output as unknown as ResearchReport).referenceLeads ?? []) : []} />
+          {next("direction", "Next: choose a direction")}
+        </div>
+      );
+    }
+
+    case "direction": {
+      if (!project.idea) return <p className="text-[15px] text-muted-foreground">Write the idea first. {next("idea", "Go to Idea")}</p>;
+      const approved = await listReferences(ctx, { projectId: project.id, status: "approved", limit: 200 });
+      return (
+        <div className="space-y-12">
+          <ClaudeNotice />
+          <DirectionsPanel slug={slug} projectId={project.id} directions={project.directions} chosenId={project.chosenDirection?.id ?? null} canEdit={canEdit} aiEnabled={aiEnabled} approvedRefs={approved.length} />
+          <details className="group rounded-lg bg-muted/60 p-5" open={approved.length >= 2}>
+            <summary className="cursor-pointer text-[16px] font-semibold">CreativeDNA from references</summary>
+            <div className="mt-6">
+              <DnaTab slug={slug} projectId={project.id} canEdit={canEdit} />
+            </div>
+          </details>
+        </div>
+      );
+    }
+
+    case "story":
+    case "design":
+    case "motion":
+    case "final": {
+      if (!project.spec) {
+        return (
+          <div className="space-y-4">
+            <ClaudeNotice />
+            <p className="max-w-[65ch] text-[16px] text-muted-foreground">
+              {project.chosenDirection ? `Direction: “${project.chosenDirection.title}”. ` : ""}Draft a storyboard with AI from the idea and direction, or start from a blank three-scene template and write it yourself.
+            </p>
+            <StoryStart slug={slug} projectId={project.id} hasDirection={Boolean(project.chosenDirection)} aiEnabled={aiEnabled} canEdit={canEdit} />
+          </div>
+        );
+      }
+      const images = (await listAssets(ctx, { projectId: project.id, kind: "image", status: ["approved", "in_use"] }))
+        .map((a) => ({ id: a.id, name: a.name, url: storageUrl(a.storageKey) ?? a.externalUrl ?? "" }))
+        .filter((a) => a.url);
+      const following: Record<string, [JourneyStage, string] | null> = { story: ["design", "Next: design"], design: ["motion", "Next: motion"], motion: ["final", "Next: final"], final: null };
+      const nextStep = following[stage];
+      return (
+        <div className="space-y-6">
+          {stage === "story" && <StoryStart slug={slug} projectId={project.id} hasDirection={Boolean(project.chosenDirection)} aiEnabled={aiEnabled} canEdit={canEdit} redraft />}
+          {stage === "design" && (
+            <p className="text-[15px] text-muted-foreground">
+              Pick colours and type, then place images.{" "}
+              <Link href={`/w/${slug}/library?tab=free&project=${project.id}`} className="text-tally underline-offset-4 hover:underline">
+                Find licence-checked images
+              </Link>{" "}
+              and add them to this project to use them here.
+            </p>
+          )}
+          <SpecWorkbench key={stage} slug={slug} projectId={project.id} initial={project.spec} mode={stage} images={images} canEdit={canEdit} />
+          {nextStep && next(nextStep[0], nextStep[1])}
+        </div>
+      );
+    }
+  }
+}
+
+async function ReferencesSection({ slug, projectId, canEdit, leads }: { slug: string; projectId: string; canEdit: boolean; leads: { url: string; why: string }[] }) {
+  const ctx = await getWorkspace(slug);
+  const [refs, numbers] = await Promise.all([listReferences(ctx, { projectId, limit: 200 }), approvedNumbering(slug, projectId)]);
+  const summaries = refs.map((r) => ({ ...r, number: numbers.get(r.id) }));
+  const approved = summaries.filter((r) => r.status === "approved").sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+  const review = summaries.filter((r) => r.status !== "approved");
+  return (
+    <div className="space-y-8">
+      <div className="space-y-2">
+        <p className="max-w-[70ch] text-[15px] leading-relaxed text-muted-foreground">
+          The browser research agent opens approved pages, captures them and analyses their composition, colour, type and motion. References teach
+          direction and are never used as production assets.
+        </p>
+      </div>
+      {canEdit && <ReferenceCapture slug={slug} projectId={projectId} aiEnabled={isClaudeConfigured()} suggestions={leads} />}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">
+          Approved <span className="tabular ml-1 text-sm text-muted-foreground">{approved.length}</span>
+        </h2>
+        <ReferenceGrid slug={slug} canEdit={canEdit} references={approved} emptyText="Approve references you want the CreativeDNA to learn from." />
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">
+          To review <span className="tabular ml-1 text-sm text-muted-foreground">{review.length}</span>
+        </h2>
+        <ReferenceGrid slug={slug} canEdit={canEdit} references={review} emptyText="Captured references appear here, ranked by relevance to the brief." />
+      </section>
+    </div>
+  );
+}
+

@@ -15,6 +15,7 @@ export function SettingsNav({ slug }: { slug: string }) {
         { href: `${base}/members`, label: "Members" },
         { href: `${base}/providers`, label: "Providers" },
         { href: `${base}/sources`, label: "Sources" },
+        { href: `${base}/activity`, label: "Activity" },
       ],
     },
     { label: "You", items: [{ href: `${base}/account`, label: "Account" }] },

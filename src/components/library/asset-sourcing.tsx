@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useJob } from "@/hooks/use-job";
 import { saveCandidateAction, startAssetSearchAction } from "@/server/actions/creative";
-import type { RankedCandidate, SourcingResult } from "@/server/agents/asset-sourcing";
+import type { RankedCandidate, SourcingResult } from "@/lib/skill-types";
 import { setDragItem } from "@/lib/drag";
 import { cn } from "@/lib/utils";
 import { RightsSummary } from "./rights";

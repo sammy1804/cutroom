@@ -29,7 +29,7 @@ export interface ReferenceSummary {
 }
 
 /** BrowserResearchAgent UI: paste an approved URL, get analysed, ranked references. */
-export function ReferenceCapture({ slug, projectId, campaignId, aiEnabled, suggestions = [] }: { slug: string; projectId: string; campaignId?: string; aiEnabled: boolean; suggestions?: { url: string; why: string }[] }) {
+export function ReferenceCapture({ slug, projectId, campaignId, aiEnabled, suggestions = [] }: { slug: string; projectId?: string; campaignId?: string; aiEnabled: boolean; suggestions?: { url: string; why: string }[] }) {
   const [url, setUrl] = useState("");
   const [jobId, setJobId] = useState<string>();
   const [pending, startTransition] = useTransition();

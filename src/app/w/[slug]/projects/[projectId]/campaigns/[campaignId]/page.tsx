@@ -9,7 +9,7 @@ import { CreativeSpecPanel } from "@/components/campaigns/creative-spec";
 import { ResearchPanel } from "@/components/campaigns/research-panel";
 import { ClaudeNotice } from "@/components/claude-notice";
 import { isClaudeConfigured } from "@/server/ai/claude";
-import type { ResearchReport } from "@/server/agents/research";
+import type { ResearchReport } from "@/lib/skill-types";
 import { isActive, latestJob, recentJobs } from "@/server/jobs/runner";
 import { getCreativeDna, listAssets, listReferences } from "@/server/services/library";
 import { PageContainer } from "@/components/page-header";

@@ -20,7 +20,17 @@ export interface RenderProps {
   height: number;
   params: ParamValues;
   config: Record<string, unknown>;
-  content?: { text?: string; node?: ReactNode };
+  content?: {
+    text?: string;
+    node?: ReactNode;
+    /** Overrides for text presets: font, size, colour, wrapping (used by the CreativeSpec renderer). */
+    style?: CSSProperties;
+    /** Render without the sample stage background. */
+    bare?: boolean;
+    /** Real scenes for transitions (default: sample Scene A / Scene B). */
+    a?: ReactNode;
+    b?: ReactNode;
+  };
 }
 
 const num = (p: ParamValues, k: string, d = 0) => (typeof p[k] === "number" ? (p[k] as number) : d);
@@ -88,7 +98,7 @@ function Units({ frame, fps, params, config, content }: RenderProps) {
 
   return (
     <AbsoluteFill style={center}>
-      <div style={{ ...textStyle, ...(unit === "line" ? { textAlign: "left", fontSize: 56 } : {}) }}>{nodes}</div>
+      <div style={{ ...textStyle, ...(unit === "line" ? { textAlign: "left", fontSize: 56 } : {}), ...content?.style }}>{nodes}</div>
     </AbsoluteFill>
   );
 }
@@ -100,7 +110,7 @@ function Typewriter({ frame, fps, params, content }: RenderProps) {
   const caretOn = bool(params, "caret", true) && Math.floor(frame / 15) % 2 === 0;
   return (
     <AbsoluteFill style={center}>
-      <div style={{ ...textStyle, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontWeight: 500, fontSize: 56 }}>
+      <div style={{ ...textStyle, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontWeight: 500, fontSize: 56, ...content?.style }}>
         {text.slice(0, shown)}
         <span style={{ opacity: caretOn ? 1 : 0, color: "#e8a33d" }}>▍</span>
       </div>
@@ -118,7 +128,7 @@ function Scramble({ frame, fps, params, content }: RenderProps) {
   const dur = num(params, "duration", 1.2);
   return (
     <AbsoluteFill style={center}>
-      <div style={{ ...textStyle, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontWeight: 600, fontSize: 60 }}>
+      <div style={{ ...textStyle, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace", fontWeight: 600, fontSize: 60, ...content?.style }}>
         {Array.from(text).map((ch, i) => {
           const t = localProgress(frame, fps, delay + i * stagger, dur * 0.5);
           if (ch === " ") return <span key={i}> </span>;
@@ -142,6 +152,7 @@ function Split({ frame, fps, params, content }: RenderProps) {
   const shift = (1 - e) * 60 * amp(params);
   const half = (top: boolean): CSSProperties => ({
     ...textStyle,
+    ...content?.style,
     position: "absolute",
     clipPath: top ? "inset(0 0 50% 0)" : "inset(50% 0 0 0)",
     transform: `translateX(${top ? -shift : shift}%)`,
@@ -324,8 +335,8 @@ function Transition(props: RenderProps) {
   const e = ease(str(params, "easing", "easeInOut"), t);
   const k = amp(params);
   const kind = String(config.kind);
-  const A = (style?: CSSProperties) => <Scene variant="a" style={style} />;
-  const B = (style?: CSSProperties) => <Scene variant="b" style={style} />;
+  const A = (style?: CSSProperties) => (props.content?.a ? <AbsoluteFill style={style}>{props.content.a}</AbsoluteFill> : <Scene variant="a" style={style} />);
+  const B = (style?: CSSProperties) => (props.content?.b ? <AbsoluteFill style={style}>{props.content.b}</AbsoluteFill> : <Scene variant="b" style={style} />);
 
   switch (kind) {
     case "shape": {

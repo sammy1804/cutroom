@@ -1,0 +1,430 @@
+{
+  "id": "production.spec-compile",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "maxLength": 120
+      },
+      "aspect": {
+        "default": "9:16",
+        "type": "string",
+        "enum": [
+          "9:16",
+          "1:1",
+          "4:5",
+          "16:9"
+        ]
+      },
+      "palette": {
+        "default": [],
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "font": {
+        "default": "sans",
+        "type": "string",
+        "enum": [
+          "sans",
+          "serif",
+          "mono"
+        ]
+      },
+      "shots": {
+        "minItems": 1,
+        "maxItems": 24,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "purpose": {
+              "type": "string",
+              "enum": [
+                "hook",
+                "context",
+                "problem",
+                "turn",
+                "proof",
+                "payoff",
+                "cta",
+                "outro"
+              ]
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0.6,
+              "maximum": 8
+            },
+            "headline": {
+              "type": "string"
+            },
+            "subtitle": {
+              "type": "string"
+            },
+            "layout": {
+              "type": "string",
+              "enum": [
+                "center",
+                "top",
+                "bottom",
+                "lower-left",
+                "fullbleed"
+              ]
+            },
+            "camera": {
+              "type": "string",
+              "description": "e.g. static, slow push, pan left"
+            },
+            "visual": {
+              "type": "string",
+              "description": "Image needed for the shot, or 'none'"
+            },
+            "animation": {
+              "type": "string",
+              "description": "Text animation preset id"
+            },
+            "imageAnimation": {
+              "description": "Image animation preset id when there is a visual",
+              "type": "string"
+            },
+            "background": {
+              "type": "string",
+              "description": "Hex colour or background preset id"
+            },
+            "transition": {
+              "description": "Transition preset id into the next shot, or null for a cut",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "audio": {
+              "type": "string",
+              "description": "Music/sound note, e.g. 'beat hit', 'riser', 'silence'"
+            }
+          },
+          "required": [
+            "purpose",
+            "duration",
+            "headline",
+            "layout",
+            "camera",
+            "visual",
+            "animation",
+            "background",
+            "transition",
+            "audio"
+          ]
+        }
+      }
+    },
+    "required": [
+      "title",
+      "shots"
+    ]
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "number",
+        "const": 1
+      },
+      "title": {
+        "type": "string",
+        "maxLength": 120
+      },
+      "aspect": {
+        "type": "string",
+        "enum": [
+          "9:16",
+          "1:1",
+          "4:5",
+          "16:9"
+        ]
+      },
+      "fps": {
+        "type": "number",
+        "const": 30
+      },
+      "style": {
+        "type": "object",
+        "properties": {
+          "background": {
+            "type": "string"
+          },
+          "foreground": {
+            "type": "string"
+          },
+          "accent": {
+            "type": "string"
+          },
+          "font": {
+            "default": "sans",
+            "type": "string",
+            "enum": [
+              "sans",
+              "serif",
+              "mono"
+            ]
+          }
+        },
+        "required": [
+          "background",
+          "foreground",
+          "accent",
+          "font"
+        ],
+        "additionalProperties": false
+      },
+      "scenes": {
+        "minItems": 1,
+        "maxItems": 24,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^scene_\\d{2}$"
+            },
+            "purpose": {
+              "default": "context",
+              "type": "string",
+              "enum": [
+                "hook",
+                "context",
+                "problem",
+                "turn",
+                "proof",
+                "payoff",
+                "cta",
+                "outro"
+              ]
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 0.5,
+              "maximum": 20
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "camera": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "background": {
+              "default": {
+                "color": "#111111",
+                "preset": null
+              },
+              "type": "object",
+              "properties": {
+                "color": {
+                  "default": "#111111",
+                  "type": "string"
+                },
+                "preset": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "presetId": {
+                          "type": "string"
+                        },
+                        "params": {
+                          "default": {},
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": [
+                              "number",
+                              "string",
+                              "boolean"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "presetId",
+                        "params"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "color",
+                "preset"
+              ],
+              "additionalProperties": false
+            },
+            "elements": {
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^scene_\\d{2}\\.[a-z][a-z0-9_]*$"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "headline",
+                      "subtitle",
+                      "image",
+                      "logo",
+                      "cta"
+                    ]
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 240
+                  },
+                  "assetId": {
+                    "type": "string"
+                  },
+                  "src": {
+                    "type": "string"
+                  },
+                  "layout": {
+                    "default": "center",
+                    "type": "string",
+                    "enum": [
+                      "center",
+                      "top",
+                      "bottom",
+                      "lower-left",
+                      "fullbleed"
+                    ]
+                  },
+                  "size": {
+                    "type": "number",
+                    "minimum": 10,
+                    "maximum": 240
+                  },
+                  "animation": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "presetId": {
+                            "type": "string"
+                          },
+                          "params": {
+                            "default": {},
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "number",
+                                "string",
+                                "boolean"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "presetId",
+                          "params"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "layout",
+                  "animation"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "transition": {
+              "default": null,
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "presetId": {
+                      "type": "string"
+                    },
+                    "params": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": [
+                          "number",
+                          "string",
+                          "boolean"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "presetId",
+                    "params"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "audio": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          "required": [
+            "id",
+            "purpose",
+            "duration",
+            "background",
+            "elements",
+            "transition"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "version",
+      "title",
+      "aspect",
+      "fps",
+      "style",
+      "scenes"
+    ],
+    "additionalProperties": false
+  }
+}
