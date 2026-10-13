@@ -48,4 +48,13 @@ is loaded inside `run()` with a dynamic `import()` so the registry can be built 
 
 ## Current skills
 
-13 ready, 9 planned. The live list, with versions and status, is in **Settings → Activity → Skill library**.
+16 ready, 9 planned. The live list, with versions and status, is in **Settings → Activity → Skill library**.
+
+### Library skills (no AI)
+
+`library.harvest-polyhaven` and `library.harvest-noto-emoji` sync openly licensed sources into the shared
+`library_item` catalog through their official endpoints. Both are incremental (unchanged items are skipped by source
+version) and refuse an empty index rather than retire the catalog. `library.open-library-search` searches it.
+Run a sync from **Settings → Sources → Open library**; browse in **Library → Open library**. Using an item copies the
+file into workspace storage as an `asset` with its rights; CC BY credits travel onto the spec element and appear in QC
+and the Final stage. LottieFiles is deliberately excluded: no public bulk API, and its licence forbids redistribution.

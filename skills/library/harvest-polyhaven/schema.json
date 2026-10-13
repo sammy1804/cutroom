@@ -1,0 +1,74 @@
+{
+  "id": "library.harvest-polyhaven",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "types": {
+        "default": [
+          "textures",
+          "hdris"
+        ],
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "textures",
+            "hdris"
+          ]
+        }
+      }
+    }
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "total": {
+              "type": "number"
+            },
+            "added": {
+              "type": "number"
+            },
+            "updated": {
+              "type": "number"
+            },
+            "unchanged": {
+              "type": "number"
+            },
+            "retired": {
+              "type": "number"
+            },
+            "type": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "source",
+            "total",
+            "added",
+            "updated",
+            "unchanged",
+            "retired",
+            "type"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": [
+      "results"
+    ],
+    "additionalProperties": false
+  }
+}

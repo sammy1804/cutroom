@@ -7,7 +7,7 @@ import type { WorkspaceContext } from "@/server/services/context";
  * frontmatter (readable on GitHub); the typed contract and `run` live in skill.ts.
  */
 
-export const SKILL_CATEGORIES = ["research", "brand", "media", "creative", "motion", "production", "intelligence", "orchestration"] as const;
+export const SKILL_CATEGORIES = ["research", "brand", "media", "creative", "motion", "production", "library", "intelligence", "orchestration"] as const;
 export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
 
 export interface SkillMeta {

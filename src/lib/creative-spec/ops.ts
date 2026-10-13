@@ -61,6 +61,7 @@ const DEFAULTS: Record<SpecElement["type"], Omit<SpecElement, "id">> = {
   cta: { type: "cta", text: "Learn more", layout: "bottom", size: 32, animation: { presetId: "text-blur-in", params: {} } },
   image: { type: "image", layout: "fullbleed", animation: { presetId: "image-ken-burns", params: {} } },
   logo: { type: "logo", layout: "top", animation: null },
+  lottie: { type: "lottie", layout: "center", animation: null },
 };
 
 /** Adds an element; ids are `${scene}.${type}`, suffixed when a type repeats (scene_01.headline_2). */
@@ -75,6 +76,11 @@ export function addElement(spec: CreativeSpecDoc, sceneIdValue: string, type: Sp
 
 export function removeElement(spec: CreativeSpecDoc, elementId: string): CreativeSpecDoc {
   return { ...spec, scenes: spec.scenes.map((s) => ({ ...s, elements: s.elements.filter((e) => e.id !== elementId) })) };
+}
+
+/** Every distinct credit line the piece must carry (CC BY assets and the like). */
+export function specCredits(spec: CreativeSpecDoc): string[] {
+  return [...new Set(spec.scenes.flatMap((s) => s.elements.map((e) => e.credit?.trim()).filter((c): c is string => Boolean(c))))];
 }
 
 export function findElement(spec: CreativeSpecDoc, elementId: string | null) {

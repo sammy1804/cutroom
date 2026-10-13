@@ -1,5 +1,6 @@
-import type { CSSProperties } from "react";
-import { AbsoluteFill, Freeze, Img, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
+import { useEffect, useState, type CSSProperties } from "react";
+import { Lottie, type LottieAnimationData } from "@remotion/lottie";
+import { AbsoluteFill, continueRender, delayRender, Freeze, Img, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
 import { getPreset } from "@/lib/animations/presets";
 import { RENDERERS } from "@/lib/animations/renderers";
 import { sanitizeParams } from "@/lib/animations/types";
@@ -40,8 +41,48 @@ function Animated({ anim: animation, category, frames, content }: { anim: Animat
   return <Renderer frame={frame} fps={fps} durationInFrames={frames} width={width} height={height} params={resolved.params} config={resolved.preset.implementation.config ?? {}} content={content} />;
 }
 
+/** Lottie JSON is fetched once per URL and shared across scenes, transitions and frames. */
+const lottieCache = new Map<string, Promise<LottieAnimationData | null>>();
+function loadLottie(src: string) {
+  let p = lottieCache.get(src);
+  if (!p) {
+    p = fetch(src)
+      .then((r) => (r.ok ? (r.json() as Promise<LottieAnimationData>) : null))
+      .catch(() => null);
+    lottieCache.set(src, p);
+  }
+  return p;
+}
+
+function LottieAsset({ src }: { src: string }) {
+  const [data, setData] = useState<LottieAnimationData | null>(null);
+  const [handle] = useState(() => delayRender(`Loading Lottie ${src}`));
+  useEffect(() => {
+    let live = true;
+    loadLottie(src).then((d) => {
+      if (live) setData(d);
+      continueRender(handle);
+    });
+    return () => {
+      live = false;
+      continueRender(handle);
+    };
+  }, [src, handle]);
+  if (!data) return null;
+  return <Lottie animationData={data} loop style={{ width: "100%", height: "100%" }} />;
+}
+
 function ElementView({ el, spec, frames, highlight }: { el: SpecElement; spec: CreativeSpecDoc; frames: number; highlight?: string | null }) {
   const outline: CSSProperties = highlight === el.id ? { outline: "3px solid #529cca", outlineOffset: 4 } : {};
+  if (el.type === "lottie") {
+    if (!el.src) return null;
+    const node = <LottieAsset src={el.src} />;
+    return (
+      <div style={{ position: "absolute", ...REGION[el.layout], ...outline }}>
+        {presetFor(el.animation, "image") ? <Animated anim={el.animation} category="image" frames={frames} content={{ node }} /> : node}
+      </div>
+    );
+  }
   if (el.type === "image" || el.type === "logo") {
     if (!el.src) return null;
     const img = <Img src={el.src} style={{ width: "100%", height: "100%", objectFit: el.type === "logo" ? "contain" : "cover" }} />;

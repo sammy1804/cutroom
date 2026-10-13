@@ -11,6 +11,9 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.133.0
         version: 0.133.0(zod@4.6.6)
+      '@remotion/lottie':
+        specifier: 4.0.534
+        version: 4.0.534(lottie-web@5.13.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@remotion/player':
         specifier: ^4.0.534
         version: 4.0.534(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -32,6 +35,9 @@ importers:
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      lottie-web:
+        specifier: ^5.13.0
+        version: 5.13.0
       lucide-react:
         specifier: ^1.55.0
         version: 1.55.0(@types/react@19.3.0)(react@19.1.0)
@@ -2155,6 +2161,13 @@ packages:
 
   '@remotion/licensing@4.0.534':
     resolution: {integrity: sha512-pNP8OfY+vbDbjNBLYGoxGyE0SsReRy85G/QTF17mQC86dt2+pzsYlOkG2mq6R4tkt27xaQv8O5EFiJfYYfVkkw==}
+
+  '@remotion/lottie@4.0.534':
+    resolution: {integrity: sha512-YIuS2EX/85UHFD5uDWkg+bg54CfSwTo6Uc3u4rcQJ2L6RLOHTeDxCaLk1UM+xdNdaPzAzk3kK89xkuTSW++KXw==}
+    peerDependencies:
+      lottie-web: ^5
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@remotion/media-parser@4.0.534':
     resolution: {integrity: sha512-FE/Ww9wBOrxiMCqGwHWbPXZBxs27WzDCDhOxkYyxnOSzSePzYseDrDdwuqCGApr1cDxiwkAm91EcqvP5acPziQ==}
@@ -4504,6 +4517,9 @@ packages:
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
+
+  lottie-web@5.13.0:
+    resolution: {integrity: sha512-+gfBXl6sxXMPe8tKQm7qzLnUy5DUPJPKIyRHwtpCpyUEYjHYRJC/5gjUvdkuO2c3JllrPtHXH5UJJK8LRYl5yQ==}
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
@@ -7598,6 +7614,13 @@ snapshots:
 
   '@remotion/licensing@4.0.534': {}
 
+  '@remotion/lottie@4.0.534(lottie-web@5.13.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
+    dependencies:
+      lottie-web: 5.13.0
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      remotion: 4.0.534(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+
   '@remotion/media-parser@4.0.534': {}
 
   '@remotion/media-utils@4.0.534(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
@@ -9981,6 +10004,8 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  lottie-web@5.13.0: {}
 
   lru-cache@5.1.1:
     dependencies:

@@ -80,7 +80,7 @@ export async function deleteReference(ctx: WorkspaceContext, id: string) {
 
 /* ─── Assets (usable media, always with rights) ─────────────────────────── */
 
-export async function listAssets(ctx: WorkspaceContext, opts: { projectId?: string; kind?: "image" | "video" | "audio"; status?: ("candidate" | "approved" | "in_use")[] } = {}) {
+export async function listAssets(ctx: WorkspaceContext, opts: { projectId?: string; kind?: "image" | "video" | "audio" | "animation"; status?: ("candidate" | "approved" | "in_use")[] } = {}) {
   const conds = [eq(asset.organizationId, ctx.organization.id)];
   if (opts.projectId) conds.push(eq(asset.projectId, opts.projectId));
   if (opts.kind) conds.push(eq(asset.kind, opts.kind));

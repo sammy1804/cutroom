@@ -3,7 +3,7 @@
 import { Player, type PlayerRef } from "@remotion/player";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, BookmarkPlus, ChevronLeft, ChevronRight, Copy, ImageIcon, Loader2, Plus, ShieldCheck, Trash2, Type } from "lucide-react";
+import { ArrowDown, ArrowUp, BookmarkPlus, ChevronLeft, ChevronRight, Copy, ImageIcon, Loader2, Plus, ShieldCheck, Sparkles, Trash2, Type } from "lucide-react";
 import { toast } from "sonner";
 import { ParamControls } from "@/components/library/param-controls";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { qualityCheckAction, saveCompositionAction, saveSpecAction } from "@/ser
 import { ANIMATION_PRESETS, getPreset } from "@/lib/animations/presets";
 import { defaultsOf, type ParamValues } from "@/lib/animations/types";
 import { SpecComposition } from "@/lib/creative-spec/composition";
-import { addElement, addScene, duplicateScene, findElement, moveScene, removeElement, removeScene, updateElement, updateScene, updateSpec } from "@/lib/creative-spec/ops";
+import { addElement, addScene, duplicateScene, findElement, specCredits, moveScene, removeElement, removeScene, updateElement, updateScene, updateSpec } from "@/lib/creative-spec/ops";
 import { sceneOffsets, specDimensions, totalFrames, type AnimationRef, type CreativeSpecDoc, type SpecElement, type SpecScene } from "@/lib/creative-spec/schema";
 import type { QualityReport } from "@/lib/skill-types";
 import { cn } from "@/lib/utils";
@@ -24,11 +24,15 @@ export interface PickableImage {
   id: string;
   name: string;
   url: string;
+  /** Preview image for the picker (Lottie assets have a JSON url). */
+  thumbnailUrl?: string | null;
+  /** Credit line the licence requires, copied onto the element when picked. */
+  credit?: string | null;
 }
 
 const PURPOSES: SpecScene["purpose"][] = ["hook", "context", "problem", "turn", "proof", "payoff", "cta", "outro"];
 const LAYOUTS: SpecElement["layout"][] = ["center", "top", "bottom", "lower-left", "fullbleed"];
-const ELEMENT_LABEL: Record<SpecElement["type"], string> = { headline: "Headline", subtitle: "Subtitle", cta: "Button", image: "Image", logo: "Logo" };
+const ELEMENT_LABEL: Record<SpecElement["type"], string> = { headline: "Headline", subtitle: "Subtitle", cta: "Button", image: "Image", logo: "Logo", lottie: "Animation" };
 
 export function SpecWorkbench({
   slug,
@@ -36,6 +40,7 @@ export function SpecWorkbench({
   initial,
   mode,
   images,
+  animations = [],
   canEdit,
 }: {
   slug: string;
@@ -43,6 +48,7 @@ export function SpecWorkbench({
   initial: CreativeSpecDoc;
   mode: WorkbenchMode;
   images: PickableImage[];
+  animations?: PickableImage[];
   canEdit: boolean;
 }) {
   const [spec, setSpec] = useState(initial);
@@ -154,7 +160,7 @@ export function SpecWorkbench({
           <>
             <SceneHeader spec={spec} scene={scene} mode={mode} canEdit={canEdit} edit={edit} onSelectScene={selectScene} />
             <ElementList scene={scene} spec={spec} mode={mode} canEdit={canEdit} selected={elementSel} onSelect={setElementSel} edit={edit} />
-            {selected && <ElementInspector spec={spec} element={selected.element} mode={mode} images={images} canEdit={canEdit} edit={edit} />}
+            {selected && <ElementInspector spec={spec} element={selected.element} mode={mode} images={images} animations={animations} canEdit={canEdit} edit={edit} />}
           </>
         )}
       </aside>
@@ -343,7 +349,7 @@ function ElementList({ scene, spec, mode, canEdit, selected, onSelect, edit }: {
         {scene.elements.map((e) => (
           <li key={e.id}>
             <button onClick={() => onSelect(e.id === selected ? null : e.id)} className={cn("flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-[15px] hover:bg-hover", e.id === selected && "bg-muted")} aria-pressed={e.id === selected}>
-              {e.type === "image" || e.type === "logo" ? <ImageIcon className="size-4 text-muted-foreground" /> : <Type className="size-4 text-muted-foreground" />}
+              {e.type === "lottie" ? <Sparkles className="size-4 text-muted-foreground" /> : e.type === "image" || e.type === "logo" ? <ImageIcon className="size-4 text-muted-foreground" /> : <Type className="size-4 text-muted-foreground" />}
               <span className="min-w-0 flex-1 truncate">{e.text || ELEMENT_LABEL[e.type]}</span>
               <span className="text-[12px] text-muted-foreground">{e.id}</span>
             </button>
@@ -352,7 +358,7 @@ function ElementList({ scene, spec, mode, canEdit, selected, onSelect, edit }: {
       </ul>
       {canEdit && (mode === "story" || mode === "design") && (
         <div className="flex flex-wrap gap-1 border-t pt-3">
-          {(mode === "story" ? (["headline", "subtitle", "cta"] as const) : (["image", "logo"] as const)).map((t) => (
+          {(mode === "story" ? (["headline", "subtitle", "cta"] as const) : (["image", "logo", "lottie"] as const)).map((t) => (
             <Button key={t} variant="ghost" size="sm" onClick={() => add(t)}>
               <Plus /> {ELEMENT_LABEL[t]}
             </Button>
@@ -363,9 +369,11 @@ function ElementList({ scene, spec, mode, canEdit, selected, onSelect, edit }: {
   );
 }
 
-function ElementInspector({ spec, element, mode, images, canEdit, edit }: { spec: CreativeSpecDoc; element: SpecElement; mode: WorkbenchMode; images: PickableImage[]; canEdit: boolean; edit: (s: CreativeSpecDoc) => void }) {
+function ElementInspector({ spec, element, mode, images, animations, canEdit, edit }: { spec: CreativeSpecDoc; element: SpecElement; mode: WorkbenchMode; images: PickableImage[]; animations: PickableImage[]; canEdit: boolean; edit: (s: CreativeSpecDoc) => void }) {
   const set = (patch: Partial<SpecElement>) => edit(updateElement(spec, element.id, patch));
-  const isText = element.type !== "image" && element.type !== "logo";
+  const isText = element.type !== "image" && element.type !== "logo" && element.type !== "lottie";
+  const isLottie = element.type === "lottie";
+  const choices = isLottie ? animations : images;
   return (
     <Section title={ELEMENT_LABEL[element.type]}>
       {mode === "story" && isText && (
@@ -396,26 +404,31 @@ function ElementInspector({ spec, element, mode, images, canEdit, edit }: { spec
           )}
           {!isText && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Image</p>
-              {images.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No approved images in this project yet. Find some in Library → Free assets and add them to this project.</p>
+              <p className="text-sm font-medium">{isLottie ? "Animation" : "Image"}</p>
+              {choices.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {isLottie
+                    ? "No animations in this project yet. Add some from Library → Open library."
+                    : "No approved images in this project yet. Find some in Library → Free assets or Open library and add them to this project."}
+                </p>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
-                  {images.map((img) => (
+                  {choices.map((img) => (
                     <button
                       key={img.id}
                       disabled={!canEdit}
-                      onClick={() => set({ assetId: img.id, src: img.url })}
+                      onClick={() => set({ assetId: img.id, src: img.url, credit: img.credit ?? undefined })}
                       aria-pressed={element.assetId === img.id}
                       className={cn("aspect-square overflow-hidden rounded-md bg-muted", element.assetId === img.id && "ring-2 ring-tally")}
                       title={img.name}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.url} alt={img.name} className="size-full object-cover" />
+                      <img src={img.thumbnailUrl ?? img.url} alt={img.name} className={cn("size-full", isLottie ? "object-contain p-1.5" : "object-cover")} />
                     </button>
                   ))}
                 </div>
               )}
+              {element.credit && <p className="text-[13px] text-muted-foreground">Credit required: {element.credit}</p>}
             </div>
           )}
         </>
@@ -503,9 +516,28 @@ function FinalPanel({ slug, projectId, spec, canEdit, onTarget }: { slug: string
           </Button>
         </Section>
       )}
+      <Credits spec={spec} />
       <Section title="Export">
         <p className="text-sm text-muted-foreground">Rendering to MP4 is not built yet. It arrives with render jobs (Phase 10). The preview above is the exact composition that will render.</p>
       </Section>
     </>
+  );
+}
+
+function Credits({ spec }: { spec: CreativeSpecDoc }) {
+  const credits = specCredits(spec);
+  if (!credits.length) return null;
+  return (
+    <Section title="Credits">
+      <p className="text-sm text-muted-foreground">These assets&apos; licences require attribution. Put these lines in the post caption or on the end card.</p>
+      <ul className="space-y-1 text-[15px]">
+        {credits.map((c) => (
+          <li key={c}>{c}</li>
+        ))}
+      </ul>
+      <Button variant="outline" size="sm" onClick={() => navigator.clipboard.writeText(credits.join("\n")).then(() => toast.success("Credits copied"))}>
+        <Copy data-icon="inline-start" /> Copy credits
+      </Button>
+    </Section>
   );
 }

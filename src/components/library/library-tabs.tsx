@@ -5,6 +5,7 @@ export const LIBRARY_TABS = [
   { id: "animations", label: "Animations" },
   { id: "compositions", label: "Templates" },
   { id: "assets", label: "My assets" },
+  { id: "open", label: "Open library" },
   { id: "free", label: "Free assets" },
   { id: "references", label: "References" },
   { id: "audio", label: "Audio" },

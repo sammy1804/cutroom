@@ -1,7 +1,7 @@
 ---
 id: production.quality-control
 name: Quality Control
-version: 1.1.0
+version: 1.2.0
 category: production
 description: "Checks a CreativeSpec before preview or render: reading time per shot, hook timing, total length for the format, text contrast, missing images and unknown presets. Deterministic; returns issues with suggested fixes."
 runtime: inline

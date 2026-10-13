@@ -56,7 +56,7 @@ export const campaignObjective = pgEnum("campaign_objective", [
   "retention",
 ]);
 
-export const assetKind = pgEnum("asset_kind", ["image", "video", "audio", "document", "font", "other"]);
+export const assetKind = pgEnum("asset_kind", ["image", "video", "audio", "animation", "document", "font", "other"]);
 export const assetSource = pgEnum("asset_source", ["upload", "generated", "imported", "render", "sourced"]);
 /** Lifecycle of a usable asset. Sourced items start as candidates and need explicit approval. */
 export const assetUsageStatus = pgEnum("asset_usage_status", ["candidate", "approved", "in_use", "rejected"]);
@@ -99,12 +99,16 @@ export const jobKind = pgEnum("job_kind", [
   "video_generation",
   "voice_generation",
   "render",
+  "library_harvest",
 ]);
 
 export const jobStatus = pgEnum("job_status", ["queued", "running", "succeeded", "failed", "canceled"]);
 
 /** Where a project is in its journey. One project, one state; not separate apps. */
 export const projectStage = pgEnum("project_stage", ["idea", "explore", "direction", "story", "design", "motion", "final"]);
+/** Kinds of item in the shared open library (harvested from licence-clear sources). */
+export const libraryKind = pgEnum("library_kind", ["lottie", "texture", "hdri"]);
+
 export const skillRunStatus = pgEnum("skill_run_status", ["running", "succeeded", "failed", "cached"]);
 
 // ─── Tables ─────────────────────────────────────────────────────────────────
@@ -371,6 +375,44 @@ export const skillRun = pgTable(
   ],
 );
 
+/**
+ * Open library: a shared catalog harvested from sources with clear licences and
+ * official access (Poly Haven API, Google's Noto animated emoji). Searched
+ * without AI. Not tenant data: every workspace sees the same catalog; using an
+ * item copies it into the workspace's own assets with its rights record.
+ */
+export const libraryItem = pgTable(
+  "library_item",
+  {
+    id: id(),
+    source: text().notNull(),
+    externalId: text().notNull(),
+    kind: libraryKind().notNull(),
+    name: text().notNull(),
+    description: text(),
+    category: text(),
+    tags: text().array().notNull().default(sql`'{}'::text[]`),
+    /** Lightweight preview (webp/png) safe to show in grids. */
+    thumbnailUrl: text(),
+    /** Animated preview for Lottie (animated webp/gif). */
+    previewUrl: text(),
+    /** Source files by role, e.g. { lottie: url } or { diffuse_1k: url, hdr_1k: url }. */
+    files: jsonb().$type<Record<string, { url: string; size?: number }>>().notNull().default({}),
+    rights: jsonb().$type<AssetRights & { credit: string }>().notNull(),
+    /** Deterministic features for search and ranking (popularity, dimensions, attributes…). */
+    features: jsonb().$type<Record<string, unknown>>().notNull().default({}),
+    /** Source-side version/hash, so re-harvests only touch changed items. */
+    sourceVersion: text(),
+    active: boolean().notNull().default(true),
+    harvestedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("library_item_source_uidx").on(t.source, t.externalId),
+    index("library_item_kind_idx").on(t.kind, t.active),
+  ],
+);
+
 /** Brain: a brainstorming conversation that can become a project. */
 export const brainThread = pgTable(
   "brain_thread",
@@ -439,6 +481,7 @@ export type Source = typeof source.$inferSelect;
 export type Reference = typeof reference.$inferSelect;
 export type CreativeMemory = typeof creativeMemory.$inferSelect;
 export type SkillRun = typeof skillRun.$inferSelect;
+export type LibraryItem = typeof libraryItem.$inferSelect;
 export type BrainThread = typeof brainThread.$inferSelect;
 export type Composition = typeof composition.$inferSelect;
 export type AnimationPresetRow = typeof animationPreset.$inferSelect;

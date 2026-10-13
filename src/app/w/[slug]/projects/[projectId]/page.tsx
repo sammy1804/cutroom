@@ -17,6 +17,7 @@ import { storageUrl } from "@/lib/drag";
 import { isActive, recentJobs } from "@/server/jobs/runner";
 import { isClaudeConfigured } from "@/server/ai/claude";
 import { getCreativeDna, listAssets, listReferences } from "@/server/services/library";
+import type { AssetRights } from "@/lib/creative-types";
 import type { ResearchReport } from "@/lib/skill-types";
 import { NewCampaignDialog } from "@/components/campaigns/campaign-dialog";
 import { EmptyState } from "@/components/empty-state";
@@ -320,9 +321,14 @@ async function StagePanel({ slug, stage, project, canEdit }: { slug: string; sta
           </div>
         );
       }
-      const images = (await listAssets(ctx, { projectId: project.id, kind: "image", status: ["approved", "in_use"] }))
-        .map((a) => ({ id: a.id, name: a.name, url: storageUrl(a.storageKey) ?? a.externalUrl ?? "" }))
-        .filter((a) => a.url);
+      const pickable = (rows: Awaited<ReturnType<typeof listAssets>>) =>
+        rows
+          .map((a) => ({ id: a.id, name: a.name, url: storageUrl(a.storageKey) ?? a.externalUrl ?? "", thumbnailUrl: a.kind === "animation" ? a.thumbnailUrl : null, credit: assetCredit(a) }))
+          .filter((a) => a.url);
+      const [images, animations] = await Promise.all([
+        listAssets(ctx, { projectId: project.id, kind: "image", status: ["approved", "in_use"] }).then(pickable),
+        listAssets(ctx, { projectId: project.id, kind: "animation", status: ["approved", "in_use"] }).then(pickable),
+      ]);
       const following: Record<string, [JourneyStage, string] | null> = { story: ["design", "Next: design"], design: ["motion", "Next: motion"], motion: ["final", "Next: final"], final: null };
       const nextStep = following[stage];
       return (
@@ -330,14 +336,14 @@ async function StagePanel({ slug, stage, project, canEdit }: { slug: string; sta
           {stage === "story" && <StoryStart slug={slug} projectId={project.id} hasDirection={Boolean(project.chosenDirection)} aiEnabled={aiEnabled} canEdit={canEdit} redraft />}
           {stage === "design" && (
             <p className="text-[15px] text-muted-foreground">
-              Pick colours and type, then place images.{" "}
+              Pick colours and type, then place images and animations.{" "}
               <Link href={`/w/${slug}/library?tab=free&project=${project.id}`} className="text-tally underline-offset-4 hover:underline">
                 Find licence-checked images
               </Link>{" "}
               and add them to this project to use them here.
             </p>
           )}
-          <SpecWorkbench key={stage} slug={slug} projectId={project.id} initial={project.spec} mode={stage} images={images} canEdit={canEdit} />
+          <SpecWorkbench key={stage} slug={slug} projectId={project.id} initial={project.spec} mode={stage} images={images} animations={animations} canEdit={canEdit} />
           {nextStep && next(nextStep[0], nextStep[1])}
         </div>
       );
@@ -376,3 +382,9 @@ async function ReferencesSection({ slug, projectId, canEdit, leads }: { slug: st
   );
 }
 
+/** The credit line a licence requires, or null when none is needed. */
+function assetCredit(a: { name: string; rights: AssetRights | null; metadata: Record<string, unknown> }) {
+  if (!a.rights?.attributionRequired) return null;
+  if (typeof a.metadata.credit === "string") return a.metadata.credit;
+  return `${a.name}${a.rights.creator ? ` by ${a.rights.creator}` : ""} (${a.rights.source}, ${a.rights.license})`;
+}

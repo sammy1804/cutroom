@@ -120,6 +120,11 @@ function Media({ asset, large = false }: { asset: AssetSummary; large?: boolean 
     );
   }
   if (asset.kind === "video" && large && src) return <video src={src} controls autoPlay muted loop className="max-h-[60dvh] w-full rounded-lg bg-black" />;
+  // Lottie assets are JSON; show their still thumbnail instead of the file.
+  if (asset.kind === "animation" && asset.thumbnailUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={asset.thumbnailUrl} alt={asset.name} loading="lazy" className={cn("w-full bg-muted object-contain p-4", large ? "max-h-[60dvh] rounded-lg" : "aspect-video")} />;
+  }
   const img = large ? (src ?? asset.thumbnailUrl) : (asset.thumbnailUrl ?? src);
   if (!img)
     return (

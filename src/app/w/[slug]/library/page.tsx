@@ -6,6 +6,7 @@ import { AnimationsPanel } from "@/components/library/animations-panel";
 import { AssetSourcing } from "@/components/library/asset-sourcing";
 import { LibraryTabs, LIBRARY_TABS, type LibraryTab } from "@/components/library/library-tabs";
 import { MyAssets } from "@/components/library/my-assets";
+import { OpenLibrary } from "@/components/library/open-library";
 import { CompositionGrid } from "@/components/library/compositions";
 import { composition } from "@/server/db/schema";
 import { desc, eq } from "drizzle-orm";
@@ -18,6 +19,7 @@ import { isClaudeConfigured } from "@/server/ai/claude";
 import { getWorkspace } from "@/server/session";
 import { listCampaignOptions } from "@/server/services/campaigns";
 import { listAssets, listCustomPresets, listReferences } from "@/server/services/library";
+import { openLibraryCategories, searchOpenLibrary, toOpenLibraryCard } from "@/server/services/open-library";
 import { listProjects } from "@/server/services/projects";
 import { Images } from "lucide-react";
 
@@ -28,7 +30,7 @@ export default async function LibraryPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ tab?: string; job?: string; project?: string }>;
+  searchParams: Promise<{ tab?: string; job?: string; project?: string; kind?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -54,6 +56,22 @@ export default async function LibraryPage({
         aiEnabled={aiEnabled}
       />
       </>
+    );
+  } else if (tab === "open") {
+    const kind = sp.kind === "texture" || sp.kind === "hdri" ? sp.kind : "lottie";
+    const [initial, categories] = await Promise.all([searchOpenLibrary(ctx, { kind, limit: 48 }), openLibraryCategories(ctx, kind)]);
+    body = (
+      <OpenLibrary
+        key={kind}
+        slug={slug}
+        kind={kind}
+        initial={{ items: initial.items.map(toOpenLibraryCard), hasMore: initial.hasMore }}
+        categories={categories}
+        projects={projects}
+        defaultProjectId={sp.project}
+        canEdit={canEdit}
+        canSync={can(ctx.role, { providers: ["manage"] })}
+      />
     );
   } else if (tab === "compositions") {
     const rows = await ctx.db.select().from(composition).where(eq(composition.organizationId, ctx.organization.id)).orderBy(desc(composition.createdAt)).limit(60);
@@ -93,7 +111,7 @@ export default async function LibraryPage({
       <PageHeader
         eyebrow={ctx.organization.name}
         title="Library"
-        description="Animations, templates, usable assets and visual references, shared across every project."
+        description="Animations, templates, openly licensed media, usable assets and visual references, shared across every project."
       />
       <LibraryTabs base={base} active={tab} />
       {(tab === "animations" || tab === "free" || tab === "audio") && <ClaudeNotice />}

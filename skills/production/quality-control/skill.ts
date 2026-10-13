@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { contrast } from "@/lib/color";
 import { getPreset } from "@/lib/animations/presets";
+import { specCredits } from "@/lib/creative-spec/ops";
 import { creativeSpecSchema } from "@/lib/creative-spec/schema";
 import { defineSkill } from "@/server/skills/types";
 
@@ -10,7 +11,12 @@ const issue = z.object({
   message: z.string(),
   fix: z.string().optional(),
 });
-export const qualityReportSchema = z.object({ score: z.number(), issues: z.array(issue) });
+export const qualityReportSchema = z.object({
+  score: z.number(),
+  issues: z.array(issue),
+  /** Attribution lines required by asset licences; they must appear in the caption or end card. */
+  credits: z.array(z.string()).default([]),
+});
 
 export default defineSkill({
   id: "production.quality-control",
@@ -32,6 +38,7 @@ export default defineSkill({
         issues.push({ severity: "warning", target: s.id, message: "Text may be hard to read on this background colour." });
       for (const e of s.elements) {
         if ((e.type === "image" || e.type === "logo") && !e.src) issues.push({ severity: "error", target: e.id, message: "Image element has no image yet.", fix: "Choose one from the asset library." });
+        if (e.type === "lottie" && !e.src) issues.push({ severity: "error", target: e.id, message: "Animation element has no animation yet.", fix: "Pick one from Library → Open library." });
         if (e.animation && !getPreset(e.animation.presetId)) issues.push({ severity: "error", target: e.id, message: `Unknown animation "${e.animation.presetId}".` });
         if (e.text && /^\[.*\]$/.test(e.text.trim())) issues.push({ severity: "error", target: e.id, message: `Placeholder text "${e.text.trim()}" is still in the piece.`, fix: "Write the real line in the Story stage." });
         if (e.type === "headline" && e.text && e.text.split(/\s+/).length > 9) issues.push({ severity: "tip", target: e.id, message: "Headline is long for motion; 3–8 words read best." });
@@ -39,6 +46,9 @@ export default defineSkill({
       if (s.transition && !getPreset(s.transition.presetId)) issues.push({ severity: "error", target: s.id, message: `Unknown transition "${s.transition.presetId}".` });
     }
     const score = Math.max(0, 100 - issues.reduce((n, i) => n + (i.severity === "error" ? 20 : i.severity === "warning" ? 8 : 2), 0));
-    return { score, issues };
+    // Credits are a requirement to carry, not a flaw, so they don't affect the score.
+    const credits = specCredits(spec);
+    if (credits.length) issues.push({ severity: "tip", target: "spec", message: `${credits.length === 1 ? "One asset needs" : `${credits.length} assets need`} a credit in the caption or end card.`, fix: credits.join(" · ") });
+    return { score, issues, credits };
   },
 });

@@ -1,6 +1,6 @@
 {
   "id": "production.quality-control",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "input": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
@@ -158,7 +158,8 @@
                           "subtitle",
                           "image",
                           "logo",
-                          "cta"
+                          "cta",
+                          "lottie"
                         ]
                       },
                       "text": {
@@ -170,6 +171,10 @@
                       },
                       "src": {
                         "type": "string"
+                      },
+                      "credit": {
+                        "type": "string",
+                        "maxLength": 200
                       },
                       "layout": {
                         "default": "center",
@@ -325,11 +330,19 @@
           ],
           "additionalProperties": false
         }
+      },
+      "credits": {
+        "default": [],
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       }
     },
     "required": [
       "score",
-      "issues"
+      "issues",
+      "credits"
     ],
     "additionalProperties": false
   }

@@ -291,7 +291,8 @@
                       "subtitle",
                       "image",
                       "logo",
-                      "cta"
+                      "cta",
+                      "lottie"
                     ]
                   },
                   "text": {
@@ -303,6 +304,10 @@
                   },
                   "src": {
                     "type": "string"
+                  },
+                  "credit": {
+                    "type": "string",
+                    "maxLength": 200
                   },
                   "layout": {
                     "default": "center",

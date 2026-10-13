@@ -5,7 +5,7 @@ import { db } from "@/server/db";
 import { member } from "@/server/db/schema";
 import { getProvider } from "@/server/providers/registry";
 
-const TYPES: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", mp4: "video/mp4", mp3: "audio/mpeg" };
+const TYPES: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", mp4: "video/mp4", mp3: "audio/mpeg", json: "application/json" };
 
 /** Serves stored files. Keys start with the organization id; only its members can read them. */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ key: string[] }> }) {

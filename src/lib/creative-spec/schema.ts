@@ -18,11 +18,13 @@ export const animationRefSchema = z.object({
 
 export const elementSchema = z.object({
   id: z.string().regex(/^scene_\d{2}\.[a-z][a-z0-9_]*$/, "Element ids look like scene_01.headline"),
-  type: z.enum(["headline", "subtitle", "image", "logo", "cta"]),
+  type: z.enum(["headline", "subtitle", "image", "logo", "cta", "lottie"]),
   text: z.string().max(240).optional(),
-  /** Library asset id (image/logo) and its resolved URL. */
+  /** Library asset id (image/logo/lottie) and its resolved URL. */
   assetId: z.string().optional(),
   src: z.string().optional(),
+  /** Attribution the asset's licence requires (e.g. CC BY). Travels with the element into QC and exports. */
+  credit: z.string().max(200).optional(),
   layout: z.enum(["center", "top", "bottom", "lower-left", "fullbleed"]).default("center"),
   /** Font size in composition pixels for text elements. */
   size: z.number().min(10).max(240).optional(),

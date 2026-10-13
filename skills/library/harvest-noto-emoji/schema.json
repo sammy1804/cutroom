@@ -1,0 +1,43 @@
+{
+  "id": "library.harvest-noto-emoji",
+  "version": "1.0.0",
+  "input": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "default": {},
+    "type": "object",
+    "properties": {}
+  },
+  "output": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "source": {
+        "type": "string"
+      },
+      "total": {
+        "type": "number"
+      },
+      "added": {
+        "type": "number"
+      },
+      "updated": {
+        "type": "number"
+      },
+      "unchanged": {
+        "type": "number"
+      },
+      "retired": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "source",
+      "total",
+      "added",
+      "updated",
+      "unchanged",
+      "retired"
+    ],
+    "additionalProperties": false
+  }
+}
