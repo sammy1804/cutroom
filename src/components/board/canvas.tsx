@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { BoardCard } from "./board-card";
 import { CommentPin, ThreadCard, threadPoint, type Thread } from "./comments";
 import { FrameEditor } from "./frame-editor";
+import { FinalNode } from "./final-node";
 import { FrameNode } from "./frame-node";
 import type { DrawerAsset } from "./library-drawer";
 import { FRAME_HEADER, LinksLayer, portPoints } from "./links-layer";
@@ -117,6 +118,9 @@ export function BoardCanvas({
   const fit = useCallback(() => {
     const b = boardRef.current;
     const boxes = [...b.frames.map((f) => ({ x: f.x, y: f.y, w: fsize.w, h: fsize.h + FRAME_HEADER })), ...b.items];
+    // Leave room for the final video beside the last frame.
+    const last = b.frames.find((f) => f.id === mainChain(b).slice(-1)[0]);
+    if (last && mainChain(b).length > 1) boxes.push({ x: last.x + fsize.w + 200, y: last.y - 60, w: fsize.w * 1.35, h: fsize.h * 1.35 + 80 });
     if (!boxes.length) return setViewport({ x: size.w / 2 - fsize.w / 2, y: size.h / 2 - fsize.h / 2, zoom: 1 });
     const minX = Math.min(...boxes.map((i) => i.x)) - 60;
     const minY = Math.min(...boxes.map((i) => i.y)) - 60;
@@ -434,6 +438,7 @@ export function BoardCanvas({
             onHover={(on) => setHover(on ? f.id : null)}
           />
         ))}
+        <FinalNode board={board} finalHref={`/w/${slug}/projects/${projectId}?view=guide&stage=final`} />
         {threads
           .filter((t) => !t.root.resolved || t.root.id === openThread)
           .map((t) => {
