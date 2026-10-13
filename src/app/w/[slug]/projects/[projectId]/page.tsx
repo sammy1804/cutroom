@@ -337,22 +337,27 @@ async function StagePanel({ slug, stage, project, canEdit }: { slug: string; sta
         listAssets(ctx, { projectId: project.id, kind: "image", status: ["approved", "in_use"] }).then(pickable),
         listAssets(ctx, { projectId: project.id, kind: "animation", status: ["approved", "in_use"] }).then(pickable),
       ]);
-      const following: Record<string, [JourneyStage, string] | null> = { story: ["design", "Next: design"], design: ["motion", "Next: motion"], motion: ["final", "Next: final"], final: null };
-      const nextStep = following[stage];
+      if (stage !== "final") {
+        return (
+          <div className="space-y-6">
+            {stage === "story" && <StoryStart slug={slug} projectId={project.id} hasDirection={Boolean(project.chosenDirection)} aiEnabled={aiEnabled} canEdit={canEdit} redraft />}
+            <div className="flex flex-col gap-4 rounded-xl bg-card p-6 shadow-card sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="text-lg font-semibold">{stage === "story" ? "Write the scenes" : stage === "design" ? "Design the frames" : "Add motion and transitions"} on the board</p>
+                <p className="max-w-[60ch] text-[15px] text-muted-foreground">
+                  Each frame is a scene you edit in place. Connect frames to set the order; click an arrow to pick the transition. The video is the connected chain.
+                </p>
+              </div>
+              <Button asChild size="lg">
+                <Link href={`/w/${slug}/projects/${project.id}/board`}>Open the board</Link>
+              </Button>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="space-y-6">
-          {stage === "story" && <StoryStart slug={slug} projectId={project.id} hasDirection={Boolean(project.chosenDirection)} aiEnabled={aiEnabled} canEdit={canEdit} redraft />}
-          {stage === "design" && (
-            <p className="text-[15px] text-muted-foreground">
-              Pick colours and type, then place images and animations.{" "}
-              <Link href={`/w/${slug}/library?tab=free&project=${project.id}`} className="text-tally underline-offset-4 hover:underline">
-                Find licence-checked images
-              </Link>{" "}
-              and add them to this project to use them here.
-            </p>
-          )}
           <SpecWorkbench key={stage} slug={slug} projectId={project.id} initial={project.spec} mode={stage} images={images} animations={animations} canEdit={canEdit} />
-          {nextStep && next(nextStep[0], nextStep[1])}
         </div>
       );
     }

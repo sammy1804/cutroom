@@ -11,11 +11,12 @@ import {
   date,
   boolean,
   doublePrecision,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { organization, user } from "./auth";
 import type { AssetRights, BrainTurn, CreativeDirection, CreativeDNA, CreativeSpec, ReferenceAnalysis } from "@/lib/creative-types";
 import type { CreativeSpecDoc } from "@/lib/creative-spec/schema";
-import type { BoardDoc } from "@/lib/board";
+import type { BoardDoc, BoardOp } from "@/lib/board";
 
 const id = () =>
   text()
@@ -140,6 +141,8 @@ export const project = pgTable(
     spec: jsonb().$type<CreativeSpecDoc | null>(),
     /** The project board: a free canvas of notes, media, presets and palettes around the piece. */
     board: jsonb().$type<BoardDoc | null>(),
+    /** Increments with every applied board operation; clients sync from it. */
+    boardVersion: integer().notNull().default(0),
     createdById: creatorRef(),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,
@@ -463,6 +466,65 @@ export const campaignRelations = relations(campaign, ({ one, many }) => ({
   jobs: many(job),
 }));
 
+/** Board operation log: what live collaborators poll to catch up. Pruned after a day. */
+export const boardOp = pgTable(
+  "board_op",
+  {
+    id: id(),
+    projectId: text()
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    version: integer().notNull(),
+    clientId: text().notNull(),
+    userId: text().references(() => user.id, { onDelete: "set null" }),
+    ops: jsonb().$type<BoardOp[]>().notNull(),
+    createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("board_op_project_version_uidx").on(t.projectId, t.version)],
+);
+
+/** Who is on a board right now: cursor and selection, refreshed every second or so. */
+export const boardPresence = pgTable(
+  "board_presence",
+  {
+    projectId: text()
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    clientId: text().notNull(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    color: text().notNull(),
+    cursor: jsonb().$type<{ x: number; y: number } | null>(),
+    selection: text(),
+    updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.clientId] })],
+);
+
+/** Comment threads pinned to a spot on the board or to a frame. Replies point at their thread. */
+export const boardComment = pgTable(
+  "board_comment",
+  {
+    id: id(),
+    organizationId: orgRef(),
+    projectId: text()
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    threadId: text(),
+    frameId: text(),
+    x: doublePrecision().notNull().default(0),
+    y: doublePrecision().notNull().default(0),
+    body: text().notNull(),
+    authorId: creatorRef(),
+    resolvedAt: timestamp({ withTimezone: true }),
+    deletedAt: timestamp({ withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("board_comment_project_idx").on(t.projectId, t.updatedAt)],
+);
+
 export const referenceRelations = relations(reference, ({ one }) => ({
   project: one(project, { fields: [reference.projectId], references: [project.id] }),
   source: one(source, { fields: [reference.sourceId], references: [source.id] }),
@@ -489,6 +551,7 @@ export type BrainThread = typeof brainThread.$inferSelect;
 export type Composition = typeof composition.$inferSelect;
 export type AnimationPresetRow = typeof animationPreset.$inferSelect;
 export type Job = typeof job.$inferSelect;
+export type BoardComment = typeof boardComment.$inferSelect;
 export type CampaignStatus = (typeof campaignStatus.enumValues)[number];
 export type CampaignObjective = (typeof campaignObjective.enumValues)[number];
 export type JobKind = (typeof jobKind.enumValues)[number];

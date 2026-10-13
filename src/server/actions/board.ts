@@ -1,24 +1,31 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
-import { project as projectTable } from "@/server/db/schema";
+import { z } from "zod";
 import { runAction } from "@/server/errors";
 import { actionWorkspace } from "@/server/session";
-import { assertCan } from "@/server/services/context";
-import { getProject } from "@/server/services/projects";
-import { boardSchema } from "@/lib/board";
+import { addComment, deleteComment, moveThread, resolveThread } from "@/server/services/board";
 
-/** Autosaves the project board (positions, notes, dropped media). */
-export async function saveBoardAction(slug: string, projectId: string, board: unknown) {
-  return runAction(async () => {
-    const ctx = await actionWorkspace(slug);
-    assertCan(ctx, { project: ["update"] });
-    await getProject(ctx, projectId);
-    const parsed = boardSchema.parse(board);
-    await ctx.db
-      .update(projectTable)
-      .set({ board: parsed })
-      .where(and(eq(projectTable.id, projectId), eq(projectTable.organizationId, ctx.organization.id)));
-    return { savedAt: new Date().toISOString() };
-  });
+const commentInput = z.object({
+  body: z.string().trim().min(1, "Write something first.").max(2000),
+  threadId: z.string().nullable().optional(),
+  frameId: z.string().max(40).nullable().optional(),
+  x: z.number().optional(),
+  y: z.number().optional(),
+});
+
+/** Anyone in the workspace can comment, including viewers: feedback shouldn't need edit rights. */
+export async function addCommentAction(slug: string, projectId: string, input: z.input<typeof commentInput>) {
+  return runAction(async () => addComment(await actionWorkspace(slug), projectId, commentInput.parse(input)));
+}
+
+export async function resolveCommentAction(slug: string, projectId: string, id: string, resolved: boolean) {
+  return runAction(async () => resolveThread(await actionWorkspace(slug), projectId, id, resolved));
+}
+
+export async function moveCommentAction(slug: string, projectId: string, id: string, at: { x: number; y: number; frameId: string | null }) {
+  return runAction(async () => moveThread(await actionWorkspace(slug), projectId, id, at));
+}
+
+export async function deleteCommentAction(slug: string, projectId: string, id: string) {
+  return runAction(async () => deleteComment(await actionWorkspace(slug), projectId, id));
 }

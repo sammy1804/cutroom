@@ -11,6 +11,8 @@ import { actionWorkspace } from "@/server/session";
 import { assertCan, type WorkspaceContext } from "@/server/services/context";
 import { getCreativeDna, listMemory, listReferences, remember } from "@/server/services/library";
 import { getProject } from "@/server/services/projects";
+import { getBoardState, replaceBoard } from "@/server/services/board";
+import { boardFromSpec } from "@/lib/board";
 import { runSkill } from "@/server/skills/runtime";
 import { creativeSpecSchema, type CreativeSpecDoc } from "@/lib/creative-spec/schema";
 import type { CreativeDirection } from "@/lib/creative-types";
@@ -35,6 +37,12 @@ async function editable(slug: string, projectId: string) {
 
 async function update(ctx: WorkspaceContext, projectId: string, values: Partial<typeof projectTable.$inferInsert>) {
   await ctx.db.update(projectTable).set(values).where(and(eq(projectTable.id, projectId), eq(projectTable.organizationId, ctx.organization.id)));
+}
+
+/** Lays a spec out on the board as connected frames, keeping the board's notes and references. */
+async function layOut(ctx: WorkspaceContext, projectId: string, spec: CreativeSpecDoc) {
+  const { board } = await getBoardState(ctx, projectId);
+  await replaceBoard(ctx, projectId, boardFromSpec(spec, { items: board.items }, { x: 0, y: board.items.length ? Math.max(...board.items.map((i) => i.y + i.h)) + 80 : 0 }));
 }
 
 /** Only ever move forward automatically; people can still jump back to any stage. */
@@ -149,7 +157,8 @@ export async function draftStoryboardAction(slug: string, projectId: string, tar
       { title: board.output.title, aspect: project.format, palette: project.chosenDirection.palette, shots: board.output.shots },
       { reason: "Compile storyboard into CreativeSpec", projectId, parentRunId: board.runId },
     );
-    await update(ctx, projectId, { spec, stage: advance(project.stage, "story") });
+    await layOut(ctx, projectId, spec);
+    await update(ctx, projectId, { stage: advance(project.stage, "story") });
     refresh(slug, projectId);
     return { scenes: spec.scenes.length };
   });
@@ -182,7 +191,8 @@ export async function startBlankSpecAction(slug: string, projectId: string) {
       },
       { reason: "Blank storyboard template", projectId },
     );
-    await update(ctx, projectId, { spec, stage: advance(project.stage, "story") });
+    await layOut(ctx, projectId, spec);
+    await update(ctx, projectId, { stage: advance(project.stage, "story") });
     refresh(slug, projectId);
   });
 }
@@ -190,8 +200,7 @@ export async function startBlankSpecAction(slug: string, projectId: string) {
 export async function saveSpecAction(slug: string, projectId: string, spec: unknown) {
   return runAction(async () => {
     const { ctx } = await editable(slug, projectId);
-    const parsed = creativeSpecSchema.parse(spec);
-    await update(ctx, projectId, { spec: parsed });
+    await layOut(ctx, projectId, creativeSpecSchema.parse(spec));
     return { savedAt: new Date().toISOString() };
   });
 }
@@ -231,7 +240,8 @@ export async function reuseCompositionAction(slug: string, compositionId: string
     if (!row) throw new AppError("NOT_FOUND", "Composition not found.");
     const { createProject } = await import("@/server/services/projects");
     const created = await createProject(ctx, { name: `${row.name} (copy)` });
-    await update(ctx, created.id, { spec: row.spec, format: row.spec.aspect, idea: row.description, stage: "story" });
+    await update(ctx, created.id, { format: row.spec.aspect, idea: row.description, stage: "story" });
+    await layOut(ctx, created.id, row.spec);
     revalidatePath(`/w/${slug}`, "layout");
     return { projectId: created.id };
   });

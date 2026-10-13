@@ -36,6 +36,13 @@
       "when": 1791907618404,
       "tag": "0004_project_board",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791910552614,
+      "tag": "0005_board_collab",
+      "breakpoints": true
     }
   ]
 }

@@ -56,7 +56,7 @@ describeDb("foundation (postgres)", () => {
       sql`select table_name from information_schema.tables where table_schema = 'public' order by 1`,
     );
     expect(tables.rows.map((r) => r.table_name)).toEqual([
-      "account", "animation_preset", "asset", "brain_thread", "campaign", "composition", "creative_dna", "creative_memory", "invitation", "job", "library_item", "member", "organization", "project", "reference", "session", "skill_run", "source", "user", "verification",
+      "account", "animation_preset", "asset", "board_comment", "board_op", "board_presence", "brain_thread", "campaign", "composition", "creative_dna", "creative_memory", "invitation", "job", "library_item", "member", "organization", "project", "reference", "session", "skill_run", "source", "user", "verification",
     ]);
   });
 

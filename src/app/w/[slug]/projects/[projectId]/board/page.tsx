@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BoardStudio } from "@/components/board/board-studio";
-import { boardSchema, emptyBoard } from "@/lib/board";
 import { storageUrl } from "@/lib/drag";
 import { can } from "@/lib/permissions";
 import { isClaudeConfigured } from "@/server/ai/claude";
 import { AppError } from "@/server/errors";
-import { getWorkspace } from "@/server/session";
+import { getSession, getWorkspace } from "@/server/session";
+import { getBoardState, listComments } from "@/server/services/board";
 import { listAssets, listReferences } from "@/server/services/library";
 import { getProject } from "@/server/services/projects";
 
@@ -46,19 +46,22 @@ export default async function BoardPage({ params }: { params: Params }) {
       credit: a.rights?.attributionRequired ? ((a.metadata as { credit?: string }).credit ?? `${a.name} (${a.rights.source}, ${a.rights.license})`) : null,
     }))
     .filter((a) => a.url);
-  const parsed = boardSchema.safeParse(project.board);
+  const [{ board, version }, comments, session] = await Promise.all([getBoardState(ctx, project.id), listComments(ctx, project.id), getSession()]);
 
   return (
     <BoardStudio
       slug={slug}
       project={{ id: project.id, name: project.name, color: project.color }}
-      initialBoard={parsed.success ? parsed.data : emptyBoard()}
-      initialSpec={project.spec}
+      me={{ id: ctx.userId, name: session?.user.name ?? "You" }}
+      initialBoard={board}
+      initialVersion={version}
+      initialComments={comments}
       assets={assets}
       references={refs
         .filter((r) => r.status !== "rejected" && !r.parentId)
         .map((r) => ({ id: r.id, title: r.title, imageUrl: storageUrl(r.imageKey), url: r.url }))}
       canEdit={can(ctx.role, { project: ["update"] })}
+      canModerate={ctx.role === "owner" || ctx.role === "admin"}
       aiEnabled={isClaudeConfigured()}
     />
   );

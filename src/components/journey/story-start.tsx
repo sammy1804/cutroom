@@ -20,7 +20,8 @@ export function StoryStart({ slug, projectId, hasDirection, aiEnabled, canEdit, 
       const res = kind === "ai" ? await draftStoryboardAction(slug, projectId, Number(length)) : await startBlankSpecAction(slug, projectId);
       setBusy(null);
       if (!res.ok) return void toast.error(res.message);
-      router.refresh();
+      // The scenes are laid out as connected frames on the board; go there to work on them.
+      router.push(`/w/${slug}/projects/${projectId}/board`);
     });
   };
   return (

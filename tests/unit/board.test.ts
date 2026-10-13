@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { boardSchema, emptyBoard } from "@/lib/board";
+import { applyOps, blankScene, boardFromSpec, boardSchema, compileSpec, emptyBoard, loadBoard, mainChain, opsFromSpec, wouldCycle, type BoardDoc } from "@/lib/board";
+import { frameFromDrop, placeOnFrame } from "@/lib/board-place";
 import { placeOnScene } from "@/lib/creative-spec/ops";
 import { creativeSpecSchema, type CreativeSpecDoc } from "@/lib/creative-spec/schema";
 import { suggest } from "@/lib/creative-spec/suggest";
@@ -73,9 +74,73 @@ describe("sous chef", () => {
   });
 });
 
-describe("board schema", () => {
-  it("accepts an empty board and rejects bad colours", () => {
-    expect(boardSchema.parse(emptyBoard()).items).toEqual([]);
-    expect(boardSchema.safeParse({ version: 1, items: [{ id: "b1", kind: "palette", x: 0, y: 0, w: 200, h: 100, colors: ["red"] }] }).success).toBe(false);
+describe("board model", () => {
+  const style = { background: "#141210", foreground: "#f3efe7", accent: "#d9732b", font: "sans" as const };
+  const frame = (id: string, x: number, text: string) => ({ id, x, y: 0, scene: blankScene(style, text) });
+  const board = (): BoardDoc => ({ ...emptyBoard("Test"), frames: [frame("a", 0, "One"), frame("b", 400, "Two"), frame("c", 800, "Three"), frame("d", 0, "Draft")], links: [] });
+
+  it("compiles the longest connected chain into a valid spec, with transitions from the links", () => {
+    let b = applyOps(board(), [
+      { t: "link", link: { id: "l1", from: "a", to: "b", transition: { presetId: "transition-mask-wipe", params: {} } } },
+      { t: "link", link: { id: "l2", from: "b", to: "c", transition: null } },
+    ]);
+    expect(mainChain(b)).toEqual(["a", "b", "c"]);
+    const spec = compileSpec(b)!;
+    expect(() => creativeSpecSchema.parse(spec)).not.toThrow();
+    expect(spec.scenes.map((s) => s.id)).toEqual(["scene_01", "scene_02", "scene_03"]);
+    expect(spec.scenes.map((s) => s.elements[0]!.text)).toEqual(["One", "Two", "Three"]);
+    expect(spec.scenes[0]!.transition?.presetId).toBe("transition-mask-wipe");
+    expect(spec.scenes[2]!.transition).toBeNull();
+    expect(spec.scenes[1]!.elements[0]!.id).toBe("scene_02.headline");
+    // Removing a frame drops its links.
+    b = applyOps(b, [{ t: "frame-", id: "b" }]);
+    expect(b.links).toHaveLength(0);
+  });
+
+  it("keeps chains simple: one link in and out per frame, and no loops", () => {
+    let b = applyOps(board(), [
+      { t: "link", link: { id: "l1", from: "a", to: "b", transition: null } },
+      { t: "link", link: { id: "l2", from: "a", to: "c", transition: null } },
+    ]);
+    expect(b.links.map((l) => [l.from, l.to])).toEqual([["a", "c"]]);
+    b = applyOps(b, [{ t: "link", link: { id: "l3", from: "c", to: "a", transition: null } }]);
+    expect(b.links.map((l) => l.id)).toEqual(["l2"]);
+    expect(wouldCycle(b, "c", "a")).toBe(true);
+  });
+
+  it("lays a spec out as frames and compiles back to the same scenes", () => {
+    const original = spec();
+    const b = boardFromSpec(original);
+    expect(b.frames).toHaveLength(3);
+    expect(b.links).toHaveLength(2);
+    const round = compileSpec(b)!;
+    expect(round.scenes.map((s) => s.elements.map((e) => e.text))).toEqual(original.scenes.map((s) => s.elements.map((e) => e.text)));
+  });
+
+  it("drops things onto frames and empty canvas by the documented rules", () => {
+    const b = board();
+    expect(placeOnFrame(b, "a", { kind: "preset", presetId: "transition-mask-wipe", category: "transition" })).toMatchObject({ ok: false });
+    const bg = placeOnFrame(b, "a", { kind: "preset", presetId: "background-grain", category: "background" });
+    expect(bg.ok && applyOps(b, bg.ops).frames[0]!.scene.background.preset?.presetId).toBe("background-grain");
+    const pal = placeOnFrame(b, "a", { kind: "palette", colors: ["#000000", "#ffffff", "#ff6600"] });
+    expect(pal.ok && applyOps(b, pal.ops).style.accent).toBe("#ff6600");
+    const f = frameFromDrop(b, { kind: "lottie", assetId: "x", url: "/r.json", credit: "CC BY" }, { x: 100, y: 100 })!;
+    expect(f.scene.elements).toEqual([expect.objectContaining({ type: "lottie", src: "/r.json", credit: "CC BY" })]);
+    expect(frameFromDrop(b, { kind: "preset", presetId: "transition-mask-wipe", category: "transition" }, { x: 0, y: 0 })).toBeNull();
+  });
+
+  it("maps Sous chef fixes back onto frames and links", () => {
+    const b = boardFromSpec(spec());
+    const fixed = suggest(compileSpec(b)!).find((s) => s.id === "add-cta")!.apply(compileSpec(b)!);
+    const after = applyOps(b, opsFromSpec(b, fixed));
+    expect(after.frames).toHaveLength(4);
+    expect(mainChain(after)).toHaveLength(4);
+    expect(compileSpec(after)!.scenes[3]!.purpose).toBe("cta");
+  });
+
+  it("validates boards and reads older ones", () => {
+    expect(boardSchema.parse(emptyBoard()).frames).toEqual([]);
+    expect(loadBoard({ version: 1, items: [{ id: "n1", kind: "note", x: 0, y: 0, w: 200, h: 100, text: "hi", color: "yellow" }] }, spec(), { title: "t", aspect: "9:16" }).frames).toHaveLength(3);
+    expect(loadBoard(null, null, { title: "t", aspect: "1:1" }).aspect).toBe("1:1");
   });
 });

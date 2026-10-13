@@ -1,19 +1,18 @@
 "use client";
 
-import { ExternalLink, GripHorizontal, ImageIcon, Palette, Quote, Sparkles, StickyNote, Wand2, X } from "lucide-react";
-import { AnimationPreview } from "@/components/library/animation-preview";
-import { NOTE_COLORS, type BoardItem } from "@/lib/board";
+import { ExternalLink, GripHorizontal, Palette, Quote, StickyNote, X } from "lucide-react";
+import { NOTE_COLORS, type LooseItem } from "@/lib/board";
 import { cn } from "@/lib/utils";
 
-const ICON = { note: StickyNote, image: ImageIcon, lottie: Sparkles, preset: Wand2, reference: Quote, palette: Palette } as const;
+const ICON = { note: StickyNote, reference: Quote, palette: Palette } as const;
 
-export function itemLabel(item: BoardItem) {
+export function itemLabel(item: LooseItem) {
   switch (item.kind) {
     case "note":
       return item.text.split("\n")[0]?.slice(0, 40) || "Note";
     case "reference":
       return item.title;
-    default:
+    case "palette":
       return item.name;
   }
 }
@@ -33,14 +32,14 @@ export function BoardCard({
   onChange,
   onRemove,
 }: {
-  item: BoardItem;
+  item: LooseItem;
   selected: boolean;
   canEdit: boolean;
   dragging: boolean;
   onHandlePointerDown: (e: React.PointerEvent) => void;
   onResizePointerDown: (e: React.PointerEvent) => void;
   onSelect: () => void;
-  onChange: (patch: Partial<BoardItem>) => void;
+  onChange: (patch: Partial<LooseItem>) => void;
   onRemove: () => void;
 }) {
   const Icon = ICON[item.kind];
@@ -50,6 +49,7 @@ export function BoardCard({
       role="group"
       aria-label={`${item.kind}: ${itemLabel(item)}`}
       data-board-card={item.id}
+      data-board-node
       onPointerDown={onSelect}
       className={cn(
         "group absolute flex flex-col overflow-hidden rounded-lg bg-card shadow-card ring-1 ring-black/5 transition-shadow",
@@ -94,7 +94,7 @@ export function BoardCard({
   );
 }
 
-function Body({ item, canEdit, onChange }: { item: BoardItem; canEdit: boolean; onChange: (patch: Partial<BoardItem>) => void }) {
+function Body({ item, canEdit, onChange }: { item: LooseItem; canEdit: boolean; onChange: (patch: Partial<LooseItem>) => void }) {
   switch (item.kind) {
     case "note": {
       const c = NOTE_COLORS[item.color] ?? NOTE_COLORS.yellow!;
@@ -129,28 +129,6 @@ function Body({ item, canEdit, onChange }: { item: BoardItem; canEdit: boolean; 
         </div>
       );
     }
-    case "image":
-      return (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.url} alt={item.name} draggable={false} className="size-full object-cover" />
-          {item.credit && <Credit text={item.credit} />}
-        </>
-      );
-    case "lottie":
-      return (
-        <div className="flex size-full items-center justify-center bg-muted/40 p-3">
-          {item.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.thumbnailUrl} alt={item.name} draggable={false} className="size-full object-contain" />
-          ) : (
-            <Sparkles className="size-8 text-muted-foreground" />
-          )}
-          {item.credit && <Credit text={item.credit} />}
-        </div>
-      );
-    case "preset":
-      return <AnimationPreview layers={[{ presetId: item.presetId, params: item.params }]} className="aspect-auto size-full" />;
     case "reference":
       return (
         <div className="flex size-full flex-col">
@@ -189,8 +167,4 @@ function Body({ item, canEdit, onChange }: { item: BoardItem; canEdit: boolean; 
         </div>
       );
   }
-}
-
-function Credit({ text }: { text: string }) {
-  return <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-2 py-0.5 text-[10px] text-white">{text}</span>;
 }
