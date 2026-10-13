@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { Dna, ExternalLink, Megaphone } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
+import { Dna, ExternalLink, LayoutDashboard, Megaphone } from "lucide-react";
 import { ClaudeNotice } from "@/components/claude-notice";
 import { DnaActions } from "@/components/creative/dna-actions";
 import { DnaView } from "@/components/creative/dna-view";
@@ -21,6 +21,7 @@ import type { AssetRights } from "@/lib/creative-types";
 import type { ResearchReport } from "@/lib/skill-types";
 import { NewCampaignDialog } from "@/components/campaigns/campaign-dialog";
 import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/page-header";
 import { ProjectSettingsMenu } from "@/components/projects/project-settings-menu";
 import { CampaignStatusPill, ProjectSwatch } from "@/components/status";
@@ -53,9 +54,11 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 /** Old ?tab= links map onto journey stages. */
 const LEGACY_TAB: Record<string, JourneyStage> = { references: "explore", dna: "direction", assets: "design", campaigns: "final" };
 
-export default async function ProjectPage({ params, searchParams }: { params: Params; searchParams: Promise<{ tab?: string; stage?: string }> }) {
+export default async function ProjectPage({ params, searchParams }: { params: Params; searchParams: Promise<{ tab?: string; stage?: string; view?: string }> }) {
   const { slug, projectId } = await params;
   const sp = await searchParams;
+  // The board is the project's home; the journey is the guide beside it.
+  if (!sp.stage && !sp.tab && sp.view !== "guide") redirect(`/w/${slug}/projects/${projectId}/board`);
   const { ctx, project } = await load(slug, projectId);
   const requested = sp.stage ?? (sp.tab ? LEGACY_TAB[sp.tab] : undefined);
   const stage: JourneyStage = JOURNEY.some((j) => j.id === requested) ? (requested as JourneyStage) : project.stage;
@@ -97,6 +100,11 @@ export default async function ProjectPage({ params, searchParams }: { params: Pa
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <Button asChild>
+              <Link href={`${base}/board`}>
+                <LayoutDashboard data-icon="inline-start" /> Open board
+              </Link>
+            </Button>
             <ProjectSettingsMenu
               slug={slug}
               project={{
@@ -224,7 +232,7 @@ function JourneyNav({ base, current, viewing }: { base: string; current: string;
             <li key={step.id} className="flex items-center gap-1">
               {i > 0 && <span aria-hidden className={cn("h-px w-4 sm:w-6", i <= reached ? "bg-tally" : "bg-border")} />}
               <Link
-                href={`${base}?stage=${step.id}`}
+                href={`${base}?view=guide&stage=${step.id}`}
                 aria-current={isView ? "step" : undefined}
                 className={cn(
                   "flex items-center gap-2 rounded-full px-3 py-1.5 text-[15px] transition-colors hover:bg-hover",

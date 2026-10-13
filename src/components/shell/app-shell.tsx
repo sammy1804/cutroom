@@ -43,6 +43,16 @@ export function AppShell(props: ShellProps) {
     setCommandOpen(true);
   };
 
+  // The project board is a focus-mode studio with its own chrome.
+  if (/\/projects\/[^/]+\/board$/.test(pathname)) {
+    return (
+      <>
+        {props.children}
+        <CommandBar slug={props.workspace.slug} open={commandOpen} onOpenChange={setCommandOpen} aiEnabled={props.aiEnabled} />
+      </>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh">
       <aside className="sticky top-0 hidden h-dvh w-[260px] shrink-0 bg-sidebar md:flex">

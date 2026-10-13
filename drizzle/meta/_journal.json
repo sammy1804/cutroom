@@ -29,6 +29,13 @@
       "when": 1791885218567,
       "tag": "0003_open_library",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791907618404,
+      "tag": "0004_project_board",
+      "breakpoints": true
     }
   ]
 }

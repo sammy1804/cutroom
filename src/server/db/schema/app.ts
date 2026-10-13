@@ -15,6 +15,7 @@ import {
 import { organization, user } from "./auth";
 import type { AssetRights, BrainTurn, CreativeDirection, CreativeDNA, CreativeSpec, ReferenceAnalysis } from "@/lib/creative-types";
 import type { CreativeSpecDoc } from "@/lib/creative-spec/schema";
+import type { BoardDoc } from "@/lib/board";
 
 const id = () =>
   text()
@@ -137,6 +138,8 @@ export const project = pgTable(
     chosenDirection: jsonb().$type<CreativeDirection | null>(),
     /** STORY → FINAL: the source of truth for preview and render. */
     spec: jsonb().$type<CreativeSpecDoc | null>(),
+    /** The project board: a free canvas of notes, media, presets and palettes around the piece. */
+    board: jsonb().$type<BoardDoc | null>(),
     createdById: creatorRef(),
     archivedAt: timestamp({ withTimezone: true }),
     ...timestamps,

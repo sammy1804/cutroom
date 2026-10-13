@@ -91,3 +91,73 @@ export function findElement(spec: CreativeSpecDoc, elementId: string | null) {
   }
   return null;
 }
+
+/** Anything that can be dropped onto a scene in the stack. */
+export type Placeable =
+  | { kind: "image"; assetId: string; url: string; credit?: string | null }
+  | { kind: "lottie"; assetId: string; url: string; credit?: string | null }
+  | { kind: "preset"; presetId: string; category: string; params?: Record<string, number | string | boolean> }
+  | { kind: "note"; text: string }
+  | { kind: "palette"; colors: string[] }
+  | { kind: "reference" };
+
+export type PlaceResult = { ok: true; spec: CreativeSpecDoc; elementId: string | null; message: string } | { ok: false; message: string };
+
+/**
+ * Turns a board or library item into part of a scene, deterministically:
+ * media becomes an element, a text preset animates the scene's text, a
+ * background or transition preset sets the scene's, a note becomes a line,
+ * a palette restyles the piece. References stay inspiration only.
+ */
+export function placeOnScene(spec: CreativeSpecDoc, sceneIdValue: string, item: Placeable): PlaceResult {
+  const scene = spec.scenes.find((s) => s.id === sceneIdValue);
+  if (!scene) return { ok: false, message: "That scene no longer exists." };
+  const label = scene.id.replace("scene_", "Scene ");
+  const full = scene.elements.length >= 8;
+  if (full && (item.kind === "image" || item.kind === "lottie" || item.kind === "note")) return { ok: false, message: `${label} is full (8 layers). Remove one first.` };
+
+  switch (item.kind) {
+    case "image":
+    case "lottie": {
+      const { spec: next, elementId } = addElement(spec, scene.id, item.kind);
+      const hasImage = scene.elements.some((e) => e.type === "image");
+      const patch: Partial<SpecElement> = { assetId: item.assetId, src: item.url, credit: item.credit ?? undefined };
+      if (item.kind === "image") patch.layout = hasImage ? "center" : "fullbleed";
+      return { ok: true, spec: updateElement(next, elementId, patch), elementId, message: `${item.kind === "image" ? "Image" : "Animation"} added to ${label}` };
+    }
+    case "preset": {
+      const anim = { presetId: item.presetId, params: item.params ?? {} };
+      if (item.category === "background") return { ok: true, spec: updateScene(spec, scene.id, { background: { ...scene.background, preset: anim } }), elementId: null, message: `${label} background set` };
+      if (item.category === "transition") {
+        if (spec.scenes[spec.scenes.length - 1]?.id === scene.id) return { ok: false, message: "The last scene has nothing to transition into." };
+        return { ok: true, spec: updateScene(spec, scene.id, { transition: anim }), elementId: null, message: `Transition out of ${label} set` };
+      }
+      if (item.category === "text") {
+        const target = scene.elements.find((e) => e.type === "headline" || e.type === "subtitle" || e.type === "cta");
+        if (target) return { ok: true, spec: updateElement(spec, target.id, { animation: anim }), elementId: target.id, message: `${label} text animation set` };
+        if (full) return { ok: false, message: `${label} is full (8 layers). Remove one first.` };
+        const { spec: next, elementId } = addElement(spec, scene.id, "headline");
+        return { ok: true, spec: updateElement(next, elementId, { animation: anim }), elementId, message: `Headline added to ${label}` };
+      }
+      if (item.category === "image") {
+        const target = scene.elements.find((e) => e.type === "image" || e.type === "lottie" || e.type === "logo");
+        if (!target) return { ok: false, message: `${label} has no image to animate yet. Drop an image first.` };
+        return { ok: true, spec: updateElement(spec, target.id, { animation: anim }), elementId: target.id, message: `${label} image animation set` };
+      }
+      return { ok: false, message: "This kind of animation can't be placed in a scene yet." };
+    }
+    case "note": {
+      const text = item.text.trim().slice(0, 240);
+      if (!text) return { ok: false, message: "The note is empty." };
+      const type = scene.elements.some((e) => e.type === "headline") ? "subtitle" : "headline";
+      const { spec: next, elementId } = addElement(spec, scene.id, type);
+      return { ok: true, spec: updateElement(next, elementId, { text }), elementId, message: `Note added to ${label} as a ${type}` };
+    }
+    case "palette": {
+      const [background, foreground, accent] = [item.colors[0], item.colors[1] ?? spec.style.foreground, item.colors[2] ?? item.colors[1] ?? spec.style.accent];
+      return { ok: true, spec: updateSpec(spec, { style: { ...spec.style, background: background!, foreground, accent } }), elementId: null, message: "Palette applied to the piece" };
+    }
+    case "reference":
+      return { ok: false, message: "References are for direction only; their rights don't allow use in the video." };
+  }
+}

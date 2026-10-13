@@ -29,9 +29,10 @@ export default defineSkill({
     if (spec.scenes[0] && spec.scenes[0].duration > 3) issues.push({ severity: "warning", target: spec.scenes[0].id, message: "The hook lasts over 3 seconds; viewers decide in the first 1–2.", fix: "Shorten the first scene or cut to a visual change sooner." });
     const ratio = contrast(spec.style.foreground, spec.style.background);
     if (ratio < 4.5) issues.push({ severity: "error", target: "spec", message: `Text contrast is ${ratio.toFixed(1)}:1; aim for at least 4.5:1.`, fix: "Pick a lighter text colour or darker background." });
+    const creditTexts = new Set([...specCredits(spec), specCredits(spec).join(" · ")]);
     for (const s of spec.scenes) {
       if (!s.elements.length) issues.push({ severity: "warning", target: s.id, message: "This scene has nothing on it." });
-      const words = s.elements.filter((e) => e.text).reduce((n, e) => n + e.text!.split(/\s+/).filter(Boolean).length, 0);
+      const words = s.elements.filter((e) => e.text && !creditTexts.has(e.text)).reduce((n, e) => n + e.text!.split(/\s+/).filter(Boolean).length, 0);
       const need = words * 0.3 + 0.5;
       if (words && need > s.duration + 0.05) issues.push({ severity: "warning", target: s.id, message: `${words} words need about ${need.toFixed(1)}s to read; the scene is ${s.duration}s.`, fix: `Lengthen to ${Math.ceil(need * 2) / 2}s or cut words.` });
       if (s.background.color && contrast(spec.style.foreground, s.background.color) < 4.5 && !s.elements.some((e) => e.type === "image"))

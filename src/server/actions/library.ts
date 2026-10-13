@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { runAction } from "@/server/errors";
+import { storageUrl } from "@/lib/drag";
 import { startJob } from "@/server/jobs/runner";
 import { actionWorkspace } from "@/server/session";
 import { assertCan } from "@/server/services/context";
@@ -52,6 +53,14 @@ export async function importLibraryItemAction(slug: string, itemId: string, proj
     const { asset, created } = await importLibraryItem(ctx, z.string().min(1).parse(itemId), { projectId: projectId ?? null });
     revalidatePath(`/w/${slug}/library`);
     if (projectId) revalidatePath(`/w/${slug}/projects/${projectId}`);
-    return { assetId: asset.id, created };
+    return {
+      assetId: asset.id,
+      created,
+      kind: asset.kind,
+      url: storageUrl(asset.storageKey) ?? asset.externalUrl ?? "",
+      thumbnailUrl: asset.thumbnailUrl,
+      name: asset.name,
+      credit: asset.rights?.attributionRequired ? ((asset.metadata as { credit?: string }).credit ?? null) : null,
+    };
   });
 }
