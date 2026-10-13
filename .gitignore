@@ -47,3 +47,6 @@ next-env.d.ts
 # local tooling
 .claude/
 a11y-report.json
+
+# Board packs exported for moving between workspaces (may contain client material)
+/exports

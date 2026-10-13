@@ -113,7 +113,8 @@ async function main() {
 
     // A Noto elephant for the hook (CC BY: the credit travels with it).
     let elephant: { id: string; url: string; credit: string } | null = null;
-    const [ele] = await db.select().from(libraryItem).where(eq(libraryItem.externalId, "1f418"));
+    // Elephant if the animated set has one, otherwise sparkles ("a weed turned into art").
+    const [ele] = (await db.select().from(libraryItem).where(eq(libraryItem.externalId, "1f418"))).concat(await db.select().from(libraryItem).where(eq(libraryItem.externalId, "2728")));
     if (ele) {
       const imported = await importLibraryItem(ctx, ele.id, { projectId: tofu.id });
       elephant = { id: imported.asset.id, url: storageUrl(imported.asset.storageKey)!, credit: ele.rights.credit };

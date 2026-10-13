@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { ProjectSwatch } from "@/components/status";
 import { Button } from "@/components/ui/button";
+import { ImportBoardButton } from "@/components/projects/import-board";
 import { can } from "@/lib/permissions";
 import { relativeTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,11 +36,14 @@ export default async function ProjectsPage({
         description="Every project moves from idea to final piece: explore, choose a direction, shape the story, design, animate."
         actions={
           canCreate && (
-            <Button asChild>
-              <Link href={`${base}/projects/new`}>
-                <Plus data-icon="inline-start" /> New project
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <ImportBoardButton slug={slug} />
+              <Button asChild>
+                <Link href={`${base}/projects/new`}>
+                  <Plus data-icon="inline-start" /> New project
+                </Link>
+              </Button>
+            </div>
           )
         }
       />

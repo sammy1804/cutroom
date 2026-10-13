@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Library, Map as MapIcon, PanelRight } from "lucide-react";
+import { ArrowLeft, Download, Library, Map as MapIcon, PanelRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { importLibraryItemAction } from "@/server/actions/library";
@@ -211,6 +211,11 @@ export function BoardStudio({
           <span className={cn("size-2 rounded-full", sync.status === "offline" ? "bg-destructive" : sync.saving ? "bg-amber-500" : "bg-emerald-500")} aria-hidden />
           {sync.status === "offline" ? "Offline, retrying" : sync.saving ? "Saving…" : sync.peers.length ? "Live" : "Saved"}
         </span>
+        <Button asChild variant="ghost" size="icon-sm" title="Export board pack">
+          <a href={`/api/board/${project.id}/export?slug=${encodeURIComponent(slug)}`} aria-label="Export this board as a pack" download>
+            <Download />
+          </a>
+        </Button>
         <Button variant={drawer ? "secondary" : "ghost"} size="sm" className="max-sm:px-2" onClick={toggleDrawer} aria-pressed={drawer}>
           <Library data-icon="inline-start" /> <span className="max-sm:sr-only">Library</span>
         </Button>

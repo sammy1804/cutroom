@@ -20,7 +20,8 @@
     "vercel-build": "tsx scripts/build-skills.ts && tsx src/server/db/migrate.ts && next build",
     "skills:build": "tsx scripts/build-skills.ts",
     "predev": "pnpm skills:build",
-    "prebuild": "pnpm skills:build"
+    "prebuild": "pnpm skills:build",
+    "board:export": "NODE_OPTIONS=--conditions=react-server tsx scripts/export-board.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
