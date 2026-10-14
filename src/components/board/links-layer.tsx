@@ -2,7 +2,8 @@
 
 import { Check, Scissors, Unlink } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ANIMATION_PRESETS, getPreset } from "@/lib/animations/presets";
+import { getPreset } from "@/lib/animations/presets";
+import { LIBRARY_PRESETS as ANIMATION_PRESETS } from "@/lib/library/curation";
 import { frameSize, type BoardDoc, type BoardLink } from "@/lib/board";
 
 /** Height of the label strip above each frame; ports sit at the middle of the frame below it. */

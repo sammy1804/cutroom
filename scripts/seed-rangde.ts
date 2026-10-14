@@ -25,8 +25,6 @@ async function main() {
   const { findMembership, listWorkspacesForUser } = await import("../src/server/services/workspaces");
   const { createProject } = await import("../src/server/services/projects");
   const { replaceBoard } = await import("../src/server/services/board");
-  const { importLibraryItem } = await import("../src/server/services/open-library");
-  const { libraryItem } = await import("../src/server/db/schema");
   const { getProvider } = await import("../src/server/providers/registry");
   const { storageUrl } = await import("../src/lib/drag");
   const { blankScene, frameSize, newId, LOCAL_SCENE } = await import("../src/lib/board");
@@ -111,14 +109,7 @@ async function main() {
       fetched[c.key] = { id, url: storageUrl(key)! };
     }
 
-    // A Noto elephant for the hook (CC BY: the credit travels with it).
-    let elephant: { id: string; url: string; credit: string } | null = null;
-    // Elephant if the animated set has one, otherwise sparkles ("a weed turned into art").
-    const [ele] = (await db.select().from(libraryItem).where(eq(libraryItem.externalId, "1f418"))).concat(await db.select().from(libraryItem).where(eq(libraryItem.externalId, "2728")));
-    if (ele) {
-      const imported = await importLibraryItem(ctx, ele.id, { projectId: tofu.id });
-      elephant = { id: imported.asset.id, url: storageUrl(imported.asset.storageKey)!, credit: ele.rights.credit };
-    }
+    // No emoji or stickers in the piece: the hook is typography over the brand colour.
 
     /* References from the shared videos (reference only, never used in the video). */
     const refs = [
@@ -171,7 +162,7 @@ async function main() {
     const img = (a: { id: string; url: string } | undefined, layout: SpecElement["layout"] = "fullbleed", preset = "image-ken-burns"): El[] => (a ? [{ type: "image", assetId: a.id, src: a.url, layout, animation: { presetId: preset, params: {} } }] : []);
 
     const speedrun: BoardFrame[] = [
-      frame(0, 0, BRAND.deep, "hook", 3, [...(elephant ? [{ type: "lottie", assetId: elephant.id, src: elephant.url, credit: elephant.credit, layout: "top", animation: null } as El] : []), t("He builds life-sized elephants out of a weed.", "text-kinetic-scale", 56, "bottom")]),
+      frame(0, 0, BRAND.deep, "hook", 3, [t("He builds life-sized elephants out of a weed.", "text-kinetic-scale", 60)]),
       frame(1, 0, BRAND.ink, "context", 3, [t("The weed is Lantana.", "text-mask-reveal", 64), sub("It chokes India's forests.")], "background-grain"),
       frame(2, 0, BRAND.ink, "turn", 2.5, [...img(fetched.sivakumar), t("Sivakumar turns it into art.", "text-word-stagger", 56, "bottom")]),
       frame(3, 0, BRAND.green, "problem", 2, [t("Art needs working capital.", "text-mask-reveal", 64)]),

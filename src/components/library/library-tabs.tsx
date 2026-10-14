@@ -2,13 +2,12 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export const LIBRARY_TABS = [
+  { id: "templates", label: "Templates" },
   { id: "animations", label: "Animations" },
-  { id: "compositions", label: "Templates" },
-  { id: "assets", label: "My assets" },
-  { id: "open", label: "Open library" },
-  { id: "free", label: "Free assets" },
-  { id: "references", label: "References" },
+  { id: "transitions", label: "Transitions" },
+  { id: "assets", label: "Assets" },
   { id: "audio", label: "Audio" },
+  { id: "references", label: "References" },
   { id: "memory", label: "Creative memory" },
 ] as const;
 

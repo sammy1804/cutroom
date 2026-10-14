@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import { Copy, ImageIcon, Plus, Sparkles, Trash2, Type, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ANIMATION_PRESETS } from "@/lib/animations/presets";
+import { getPreset } from "@/lib/animations/presets";
+import { LIBRARY_PRESETS as ANIMATION_PRESETS } from "@/lib/library/curation";
 import type { BoardDoc, BoardFrame, BoardOp } from "@/lib/board";
 import { frameSpec } from "@/lib/board-place";
 import { addElement, removeElement, updateElement, updateScene } from "@/lib/creative-spec/ops";
@@ -196,6 +197,13 @@ export function FrameEditor({
             <span className="tabular w-9 text-right">{scene.duration}s</span>
           </label>
           <MiniSelect label="Role" value={scene.purpose} options={PURPOSES.map((p) => [p, p])} onChange={(v) => setScene({ purpose: v as SpecScene["purpose"] })} wide />
+          <MiniSelect
+            label="Motion feel"
+            value={scene.feel ?? "smooth"}
+            options={[["smooth", "Smooth"], ["twos", "Stop-motion · on twos (12 fps)"], ["threes", "Stop-motion · on threes (8 fps)"]]}
+            onChange={(v) => setScene({ feel: v as SpecScene["feel"] })}
+            wide
+          />
         </Group>
       </fieldset>
     </div>
@@ -211,7 +219,9 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function MiniSelect({ label, value, options, onChange, wide }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; wide?: boolean }) {
+function MiniSelect({ label, value, options: given, onChange, wide }: { label: string; value: string; options: [string, string][]; onChange: (v: string) => void; wide?: boolean }) {
+  // A value from outside the curated list (older work) stays selectable rather than silently changing.
+  const options: [string, string][] = value && !given.some(([v]) => v === value) ? [...given, [value, `${getPreset(value)?.name ?? value} (legacy)`]] : given;
   return (
     <label className={cn("flex min-w-0 flex-col gap-0.5 text-[11px] text-muted-foreground", wide ? "w-full" : "flex-1")}>
       {label}

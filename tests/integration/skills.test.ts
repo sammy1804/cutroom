@@ -84,8 +84,8 @@ describeDb("skill runtime (postgres)", () => {
   });
 
   it("runs a deterministic skill and records the run", async () => {
-    const { output, runId } = await runSkill<{ presets: { id: string }[] }>(ctx, "motion.animation-catalog-search", { query: "liquid", category: "transition" }, { reason: "test search" });
-    expect(output.presets[0]?.id).toBe("transition-liquid");
+    const { output, runId } = await runSkill<{ presets: { id: string }[] }>(ctx, "motion.animation-catalog-search", { query: "whip", category: "transition" }, { reason: "test search" });
+    expect(output.presets[0]?.id).toBe("transition-whip-pan");
     const [row] = await db.select().from(skillRun).where(sql`${skillRun.id} = ${runId}`);
     expect(row).toMatchObject({ status: "succeeded", skillId: "motion.animation-catalog-search", reason: "test search", costUsd: 0 });
   });

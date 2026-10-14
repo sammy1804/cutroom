@@ -4,6 +4,7 @@ import { bounceDrop, clamp01, ease, lerp, localProgress } from "./easing";
 import { SAMPLE_TEXT, SampleLandscape, SampleObject, Scene, textStyle } from "./samples";
 import type { ParamValues } from "./types";
 import { Background2, Component, ImageFx, ObjectFx, TextFx } from "./renderers-extra";
+import { StopMotion } from "./renderers-stop";
 
 /**
  * Renderers: the `implementation` side of every animation preset.
@@ -820,4 +821,5 @@ export const RENDERERS: Record<string, (props: RenderProps) => ReactNode> = {
   objectFx: ObjectFx,
   background2: Background2,
   component: Component,
+  stopMotion: StopMotion,
 };

@@ -1,4 +1,4 @@
-import { ANIMATION_PRESETS } from "./presets";
+import { LIBRARY_PRESETS as ANIMATION_PRESETS } from "@/lib/library/curation";
 
 /** Compact, stable catalog for Claude prompts (kept byte-identical so it caches). */
 export const ANIMATION_CATALOG_TEXT =

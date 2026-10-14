@@ -120,7 +120,15 @@ function ElementView({ el, spec, frames, highlight }: { el: SpecElement; spec: C
   );
 }
 
-export function SceneView({ spec, scene, frames, highlight }: { spec: CreativeSpecDoc; scene: SpecScene; frames: number; highlight?: string | null }) {
+export function SceneView(props: { spec: CreativeSpecDoc; scene: SpecScene; frames: number; highlight?: string | null }) {
+  const frame = useCurrentFrame();
+  const hold = props.scene.feel === "twos" ? 2 : props.scene.feel === "threes" ? 3 : 1;
+  // Stop-motion cadence: every animation in the scene sees only every 2nd or 3rd frame.
+  if (hold > 1) return <Freeze frame={Math.floor(frame / hold) * hold}><SceneBody {...props} /></Freeze>;
+  return <SceneBody {...props} />;
+}
+
+function SceneBody({ spec, scene, frames, highlight }: { spec: CreativeSpecDoc; scene: SpecScene; frames: number; highlight?: string | null }) {
   const order = (e: SpecElement) => (e.type === "image" ? 0 : e.type === "logo" ? 2 : 1);
   return (
     <AbsoluteFill style={{ background: scene.background.color || spec.style.background, overflow: "hidden" }}>

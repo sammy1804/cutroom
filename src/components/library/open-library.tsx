@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 type Kind = OpenLibraryCard["kind"];
 
 const KINDS: { id: Kind; label: string; hint: string }[] = [
-  { id: "lottie", label: "Animations", hint: "Lottie animations that play crisp at any size." },
   { id: "texture", label: "Textures", hint: "Surfaces for backgrounds, grain and material." },
   { id: "hdri", label: "Skies & HDRIs", hint: "Wide environments, skies and light for backdrops." },
 ];
@@ -98,7 +97,7 @@ export function OpenLibrary({
         {KINDS.map((k) => (
           <Link
             key={k.id}
-            href={`/w/${slug}/library?tab=open&kind=${k.id}${defaultProjectId ? `&project=${defaultProjectId}` : ""}`}
+            href={`/w/${slug}/library?tab=assets&view=materials&kind=${k.id}${defaultProjectId ? `&project=${defaultProjectId}` : ""}`}
             aria-current={k.id === kind ? "page" : undefined}
             className={cn("rounded-full border px-3.5 py-1.5 text-[15px] transition-colors hover:bg-hover", k.id === kind && "border-foreground bg-foreground text-background hover:bg-foreground")}
           >

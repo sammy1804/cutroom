@@ -44,6 +44,8 @@ export const sceneSchema = z.object({
   /** Transition into the next scene. */
   transition: animationRefSchema.nullable().default(null),
   audio: z.string().max(120).optional(),
+  /** Motion feel: "twos"/"threes" hold each drawing for 2 or 3 frames (12 or 8 fps), the stepped cadence of stop-motion. */
+  feel: z.enum(["smooth", "twos", "threes"]).optional(),
 });
 
 export const creativeSpecSchema = z.object({

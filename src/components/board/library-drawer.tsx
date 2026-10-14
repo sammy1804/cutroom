@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
-import { Loader2, Plus, Search } from "lucide-react";
-import { toast } from "sonner";
+import { useMemo, useState } from "react";
+import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AnimationPreview } from "@/components/library/animation-preview";
-import { searchOpenLibraryAction } from "@/server/actions/library";
-import type { OpenLibraryCard } from "@/server/services/open-library";
-import { ANIMATION_PRESETS, CATEGORY_LABEL } from "@/lib/animations/presets";
+import { CATEGORY_LABEL } from "@/lib/animations/presets";
+import { LIBRARY_PRESETS as ANIMATION_PRESETS } from "@/lib/library/curation";
 import { setDragItem, type DragItem } from "@/lib/drag";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +26,6 @@ export interface DrawerReference {
 
 const TABS = [
   { id: "motion", label: "Motion" },
-  { id: "lottie", label: "Animations" },
-  { id: "texture", label: "Textures" },
   { id: "assets", label: "Assets" },
   { id: "refs", label: "Refs" },
 ] as const;
@@ -44,12 +40,12 @@ const PLACEABLE = ["text", "image", "background", "transition"] as const;
  * onto a scene. Enter (or the + button) adds an item to the middle of the board.
  */
 export function LibraryDrawer({
-  slug,
   assets,
   references,
   onAdd,
 }: {
-  slug: string;
+  /** Kept for callers; the drawer no longer searches the server. */
+  slug?: string;
   assets: DrawerAsset[];
   references: DrawerReference[];
   onAdd: (item: DragItem) => void;
@@ -57,32 +53,6 @@ export function LibraryDrawer({
   const [tab, setTab] = useState<Tab>("motion");
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<(typeof PLACEABLE)[number] | "all">("all");
-  const [open, setOpen] = useState<OpenLibraryCard[]>([]);
-  const [loading, start] = useTransition();
-
-  // Results are tagged with their kind so a slow response can't fill the wrong tab.
-  const [openKind, setOpenKind] = useState<string | null>(null);
-  useEffect(() => {
-    if (tab !== "lottie" && tab !== "texture") return;
-    let live = true;
-    const t = setTimeout(
-      () =>
-        start(async () => {
-          const res = await searchOpenLibraryAction(slug, { q, kind: tab });
-          if (!live) return;
-          if (!res.ok) return void toast.error(res.message);
-          setOpen(res.data.items);
-          setOpenKind(tab);
-        }),
-      q ? 250 : 0,
-    );
-    return () => {
-      live = false;
-      clearTimeout(t);
-    };
-  }, [tab, q, slug]);
-  const openItems = openKind === tab ? open : [];
-
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const match = (text: string) => words.every((w) => text.toLowerCase().includes(w));
   const presets = useMemo(
@@ -116,7 +86,6 @@ export function LibraryDrawer({
             Search the library
           </label>
           <Input id="drawer-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" className="h-9 bg-background pl-8" />
-          {loading && <Loader2 className="absolute top-1/2 right-2.5 size-4 -translate-y-1/2 animate-spin text-muted-foreground" aria-label="Searching" />}
         </div>
         {tab === "motion" && (
           <div className="flex flex-wrap gap-1" role="group" aria-label="Motion type">
@@ -138,21 +107,6 @@ export function LibraryDrawer({
               </Tile>
             ))}
           </ul>
-        )}
-
-        {(tab === "lottie" || tab === "texture") && (
-          <>
-            <ul className={cn("grid gap-2", tab === "lottie" ? "grid-cols-3" : "grid-cols-2")}>
-              {openItems.map((i) => (
-                <Tile key={i.id} label={i.name} sub={i.license} item={{ type: "library", id: i.id, kind: i.kind, name: i.name, thumbnailUrl: i.thumbnailUrl, credit: i.attributionRequired ? i.credit : null }} onAdd={onAdd}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={i.thumbnailUrl ?? ""} alt="" loading="lazy" draggable={false} className={cn("w-full rounded-md bg-muted", tab === "lottie" ? "aspect-square object-contain p-1.5" : "aspect-square object-cover")} />
-                </Tile>
-              ))}
-            </ul>
-            {!loading && openKind === tab && openItems.length === 0 && <Empty text={q ? "No matches." : "Nothing synced yet. An admin can sync it in Settings → Sources."} />}
-            <p className="mt-3 text-[12px] text-muted-foreground">{tab === "lottie" ? "Animated Noto Emoji by Google, CC BY 4.0." : "Textures from Poly Haven, CC0."}</p>
-          </>
         )}
 
         {tab === "assets" &&

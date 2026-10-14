@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { isCore } from "@/lib/library/curation";
 import { describe, expect, it } from "vitest";
 import { ANIMATION_CATALOG_TEXT } from "@/lib/animations/catalog-text";
 import { bounceDrop, ease } from "@/lib/animations/easing";
@@ -34,7 +35,9 @@ describe("animation library", () => {
         if (def.type === "number") expect(def.default >= def.min && def.default <= def.max, `${p.id}.${key}`).toBe(true);
         if (def.type === "select") expect(def.options, `${p.id}.${key}`).toContain(def.default);
       }
-      expect(ANIMATION_CATALOG_TEXT).toContain(p.id);
+      // The AI catalog offers only curated presets; legacy ones still render but are never suggested.
+      if (isCore(p.id)) expect(ANIMATION_CATALOG_TEXT).toContain(p.id);
+      else expect(ANIMATION_CATALOG_TEXT).not.toContain(`${p.id} |`);
     }
   });
 

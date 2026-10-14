@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ANIMATION_PRESETS } from "@/lib/animations/presets";
+import { LIBRARY_PRESETS as ANIMATION_PRESETS } from "@/lib/library/curation";
 import { defineSkill } from "@/server/skills/types";
 
 export default defineSkill({

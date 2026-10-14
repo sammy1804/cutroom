@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteCustomPresetAction, searchAnimationsAction } from "@/server/actions/creative";
 import type { AnimationSearchResult } from "@/lib/skill-types";
-import { ANIMATION_PRESETS, CATEGORY_LABEL, getPreset } from "@/lib/animations/presets";
-import type { AnimationCategory, ParamValues } from "@/lib/animations/types";
+import { CATEGORY_LABEL, getPreset } from "@/lib/animations/presets";
+import { CURATED_ANIMATIONS, CURATED_TRANSITIONS } from "@/lib/library/curation";
+import { ANIMATION_GROUPS, TRANSITION_GROUPS } from "@/lib/library/taxonomy";
+import type { ParamValues } from "@/lib/animations/types";
 import { setDragItem } from "@/lib/drag";
 import { cn } from "@/lib/utils";
 import { AnimationDetail, type CampaignOption, type DetailTarget } from "./animation-detail";
@@ -21,7 +23,11 @@ export interface CustomPresetSummary {
   params: Record<string, unknown>;
 }
 
-const FILTERS: ("all" | AnimationCategory | "custom")[] = ["all", "component", "text", "image", "object", "transition", "background", "3d", "custom"];
+// Groups appear once they have curated content; no empty shelves.
+const ANIMATION_FILTERS = ["all", ...ANIMATION_GROUPS.map((g) => g.id).filter((id) => CURATED_ANIMATIONS.some((c) => c.group === id)), "custom"];
+const TRANSITION_FILTERS = ["all", ...TRANSITION_GROUPS.filter((g) => CURATED_TRANSITIONS.some((c) => c.subgroup === g))];
+type Filter = string;
+const filterLabel = (f: string) => (f === "all" ? "All" : f === "custom" ? "Custom" : (ANIMATION_GROUPS.find((g) => g.id === f)?.label ?? f));
 
 export function AnimationsPanel({
   slug,
@@ -31,6 +37,7 @@ export function AnimationsPanel({
   defaultCampaignId,
   canEdit,
   aiEnabled,
+  mode = "animations",
 }: {
   slug: string;
   customPresets: CustomPresetSummary[];
@@ -39,8 +46,10 @@ export function AnimationsPanel({
   defaultCampaignId?: string;
   canEdit: boolean;
   aiEnabled: boolean;
+  mode?: "animations" | "transitions";
 }) {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const FILTERS: readonly Filter[] = mode === "transitions" ? TRANSITION_FILTERS : ANIMATION_FILTERS;
+  const [filter, setFilter] = useState<Filter>("all");
   const [text, setText] = useState("");
   const [detail, setDetail] = useState<DetailTarget | null>(null);
   const [query, setQuery] = useState("");
@@ -50,10 +59,14 @@ export function AnimationsPanel({
   const presets = useMemo(() => {
     if (filter === "custom") return [];
     const needle = text.trim().toLowerCase();
-    return ANIMATION_PRESETS.filter((p) => (filter === "all" || p.category === filter) && (!needle || `${p.name} ${p.description} ${p.moods.join(" ")}`.toLowerCase().includes(needle)));
-  }, [filter, text]);
+    const pool = mode === "transitions" ? CURATED_TRANSITIONS : CURATED_ANIMATIONS;
+    return pool
+      .filter((c) => filter === "all" || c.group === filter || c.subgroup === filter)
+      .map((c) => c.preset)
+      .filter((p) => !needle || `${p.name} ${p.description} ${p.moods.join(" ")}`.toLowerCase().includes(needle));
+  }, [filter, text, mode]);
 
-  const customs = filter === "all" || filter === "custom" ? customPresets : [];
+  const customs = mode === "animations" && (filter === "all" || filter === "custom") ? customPresets : [];
 
   function askClaude(event: React.FormEvent) {
     event.preventDefault();
@@ -141,7 +154,7 @@ export function AnimationsPanel({
                 filter === f && "border-tally/60 bg-tally/10 text-foreground",
               )}
             >
-              {f === "all" ? "All" : f === "custom" ? `Custom (${customPresets.length})` : CATEGORY_LABEL[f]}
+              {f === "custom" ? `Custom (${customPresets.length})` : filterLabel(f)}
             </button>
           ))}
         </div>
