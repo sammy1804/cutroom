@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Cutroom motion archive: editable motion templates you can scrub, edit, sequence and export as MP4.">
+<title>Cutroom Motion Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Fraunces:opsz,wght@9..144,300;9..144,600&family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+/* Layout: an archive — search and shelves across the top, large live previews dominate, a viewer opens over the shelf with stage, timeline and generated inspector. Light only, the Cutroom look. */
+:root {
+  color-scheme: light;
+  --paper: #f6f6f4;
+  --card: #ffffff;
+  --sunk: #ecebe8;
+  --ink: #121212;
+  --muted: #6d6a65;
+  --faint: #a7a39c;
+  --line: #e2e0dc;
+  --accent: #d6283e;
+  --ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--paper); color: var(--ink); font: 15px/1.5 var(--ui); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.wrap { max-width: 1440px; margin: 0 auto; padding-inline: 20px; padding-block: 0 72px; }
+
+/* Header */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.bar { max-width: 1440px; margin: 0 auto; padding-inline: 20px; display: flex; align-items: center; gap: 16px; height: 60px; }
+.mark { font: 800 18px var(--ui); letter-spacing: -.03em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.mark i { width: 12px; height: 12px; background: var(--accent); display: inline-block; }
+.nav { display: flex; gap: 4px; }
+.nav button { border: 0; background: none; padding: 6px 12px; border-radius: 999px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.nav button[aria-current="page"] { background: var(--ink); color: var(--paper); }
+.search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px 0 14px; height: 40px; }
+.search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--card); padding: 8px 15px; border-radius: 999px; cursor: pointer; font-weight: 500; white-space: nowrap; font-size: 14px; }
+.btn:hover { border-color: var(--faint); }
+.btn.dark { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.btn.red { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn.ghost { background: none; border-color: transparent; }
+.btn.sm { padding: 5px 11px; font-size: 13px; }
+.btn[disabled] { opacity: .45; cursor: default; }
+@media (max-width: 760px) { .bar { flex-wrap: wrap; height: auto; padding-block: 10px; } .search { order: 3; flex-basis: 100%; } }
+
+/* Intro + shelves */
+.intro { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: end; padding-block: 44px 26px; }
+.intro h1 { font: 800 clamp(40px, 6.4vw, 92px)/.92 var(--ui); letter-spacing: -.045em; margin: 0; text-wrap: balance; }
+.intro p { color: var(--muted); max-width: 52ch; margin: 0; font-size: 16px; }
+@media (max-width: 860px) { .intro { grid-template-columns: 1fr; } }
+.shelves { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.shelves button { border: 1px solid var(--line); background: none; border-radius: 999px; padding: 6px 13px; cursor: pointer; white-space: nowrap; color: var(--muted); font-size: 14px; }
+.shelves button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.shelves .count { font: 11px var(--mono); opacity: .7; margin-left: 4px; }
+.answer { margin-top: 14px; color: var(--muted); font-size: 14px; }
+
+/* Grid of objects */
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 20px; margin-top: 22px; }
+.grid.small { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid.small { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .grid, .grid.small { grid-template-columns: 1fr; } }
+.obj { text-align: left; background: none; border: 0; padding: 0; cursor: pointer; display: grid; gap: 10px; min-width: 0; }
+.stage-sm { position: relative; aspect-ratio: 16 / 9; background: var(--sunk); overflow: hidden; }
+.stage-sm canvas { width: 100%; height: 100%; display: block; }
+.stage-sm .tag { position: absolute; left: 10px; top: 10px; font: 500 10px var(--mono); letter-spacing: .08em; text-transform: uppercase; background: rgba(255,255,255,.9); color: var(--ink); padding: 3px 7px; }
+.stage-sm .len { position: absolute; right: 10px; bottom: 10px; font: 500 10px var(--mono); background: rgba(18,18,18,.78); color: #fff; padding: 3px 7px; }
+.obj:hover .stage-sm, .obj:focus-visible .stage-sm { outline: 1px solid var(--ink); }
+.obj .meta { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.obj h3 { font: 600 17px/1.25 var(--ui); letter-spacing: -.01em; margin: 0; }
+.obj p { margin: 0; color: var(--muted); font-size: 14px; }
+.section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 48px; border-top: 1px solid var(--ink); padding-top: 12px; }
+.section-h h2 { font: 700 22px var(--ui); letter-spacing: -.02em; margin: 0; }
+.empty { color: var(--muted); padding: 30px 0; }
+
+/* Viewer */
+.viewer { position: fixed; inset: 0; z-index: 20; background: var(--paper); display: grid; grid-template-rows: auto minmax(0, 1fr); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.vbar { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.vbar h2 { font: 700 18px var(--ui); letter-spacing: -.02em; margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbody { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 0; }
+@media (max-width: 960px) { .vbody { grid-template-columns: 1fr; overflow-y: auto; } }
+.stagewrap { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; padding: 20px; gap: 14px; }
+.stage { display: grid; place-items: center; min-height: 280px; background: var(--sunk); overflow: hidden; }
+.stage canvas { display: block; max-width: 100%; max-height: 100%; box-shadow: 0 10px 40px rgba(0,0,0,.12); background: #fff; }
+.timeline { display: grid; gap: 8px; }
+.trow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.time { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; min-width: 128px; }
+.scrub { position: relative; height: 36px; flex: 1; min-width: 200px; cursor: pointer; touch-action: none; }
+.scrub .rail { position: absolute; left: 0; right: 0; top: 16px; height: 4px; background: var(--line); }
+.scrub .fill { position: absolute; left: 0; top: 16px; height: 4px; background: var(--ink); }
+.scrub .head { position: absolute; top: 6px; width: 2px; height: 24px; background: var(--accent); transform: translateX(-1px); }
+.scrub .mk { position: absolute; top: 0; height: 36px; border-left: 1px solid var(--faint); }
+.scrub .mk span { position: absolute; top: -1px; left: 4px; font: 500 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--card); }
+.seg button { border: 0; background: none; padding: 4px 10px; border-radius: 999px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.inspector { border-left: 1px solid var(--line); overflow-y: auto; padding: 18px 18px 40px; display: grid; gap: 20px; align-content: start; background: var(--card); }
+@media (max-width: 960px) { .inspector { border-left: 0; border-top: 1px solid var(--line); } }
+.group h4 { margin: 0 0 10px; font: 500 11px var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.fields { display: grid; gap: 12px; }
+label.f { display: grid; gap: 5px; }
+label.f > span { font-size: 13px; font-weight: 500; display: flex; justify-content: space-between; gap: 8px; }
+label.f > span em { font: 400 12px var(--mono); color: var(--muted); font-style: normal; }
+.i { width: 100%; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+textarea.i { resize: vertical; min-height: 64px; }
+input[type=range] { width: 100%; accent-color: var(--ink); }
+.colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.colorf { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.colorf .chip { position: relative; height: 34px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.colorf input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.imgf { display: flex; align-items: center; gap: 10px; }
+.imgf .th { width: 54px; height: 40px; background: var(--sunk) center / cover no-repeat; border: 1px solid var(--line); flex: none; }
+.variants { display: flex; flex-wrap: wrap; gap: 6px; }
+.variants button { border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
+.variants button[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.ai { display: grid; gap: 8px; background: var(--paper); border: 1px solid var(--line); padding: 12px; }
+.ai p { margin: 0; font-size: 13px; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.note { font-size: 13px; color: var(--muted); }
+.err { color: var(--accent); font-size: 13px; }
+
+/* Board */
+.board-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; padding-block: 40px 20px; }
+.board-head h1 { font: 800 clamp(36px, 5vw, 64px)/.95 var(--ui); letter-spacing: -.04em; margin: 0; }
+.strip { display: flex; gap: 0; overflow-x: auto; padding-bottom: 10px; align-items: stretch; }
+.bcard { width: 240px; flex: none; background: var(--card); border: 1px solid var(--line); display: grid; gap: 8px; padding: 10px; cursor: grab; }
+.bcard.drag { opacity: .4; }
+.bcard .stage-sm { aspect-ratio: 16 / 9; }
+.bcard h3 { font: 600 14px var(--ui); margin: 0; }
+.bcard .row { display: flex; gap: 4px; flex-wrap: wrap; }
+.join { width: 92px; flex: none; display: grid; place-items: center; align-content: center; gap: 4px; padding: 6px; }
+.join select { width: 84px; font-size: 12px; padding: 4px; border: 1px solid var(--line); background: var(--card); border-radius: 4px; }
+.join::before { content: ""; display: block; width: 100%; height: 1px; background: var(--ink); }
+.boardplay { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; margin-top: 24px; }
+@media (max-width: 960px) { .boardplay { grid-template-columns: 1fr; } }
+.toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 999px; z-index: 40; font-size: 14px; max-width: calc(100% - 32px); }
+.progress { height: 4px; background: var(--line); }
+.progress i { display: block; height: 100%; background: var(--accent); }
+@media (max-width: 640px) { .scrub .mk span { display: none; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="bar">
+  <span class="mark"><i></i>Cutroom</span>
+  <nav class="nav" aria-label="Sections"><button id="nav-lib" data-act="go" data-to="library" aria-current="page">Library</button><button id="nav-board" data-act="go" data-to="board">Board <span id="board-count" class="mono"></span></button></nav>
+  <form class="search" id="search" role="search"><input id="q" placeholder="Search, or describe what you need: “something tactile for a product”" aria-label="Search the archive"><button class="btn sm dark" id="ask-btn" type="submit">Find</button></form>
+</div></header>
+<main class="wrap" id="main"></main>
+<div class="viewer" id="viewer" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
+<script>
+/* ════════════════════════ Cutroom motion language ════════════════════════
+   Every object is a pure function render(ctx, t, P, W, H): seekable to any time,
+   aspect-aware, editable through declared properties. Shared primitives below. */
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (t, a, d) => clamp((t - a) / d);
+const lerp = (a, b, k) => a + (b - a) * k;
+const E = {
+  out: (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x)),             // Cutroom out: fast start, long settle
+  inOut: (x) => (x < 0.5 ? 8 * x ** 4 : 1 - Math.pow(-2 * x + 2, 4) / 2),
+  soft: (x) => 1 - Math.pow(1 - x, 3),
+  in: (x) => x * x * x,
+  back: (x) => { const c = 1.35; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); },
+};
+const hash = (s) => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const rng = (seed) => { let s = hash(seed) || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; };
+const FAM = {
+  sans: '"Geist", ui-sans-serif, system-ui, sans-serif',
+  serif: '"Instrument Serif", Georgia, "Times New Roman", serif',
+  fraunces: '"Fraunces", Georgia, serif',
+  condensed: '"Anton", Impact, "Arial Narrow", sans-serif',
+  mono: '"Geist Mono", ui-monospace, Menlo, monospace',
+};
+const font = (w, size, fam = "sans", italic = false) => `${italic ? "italic " : ""}${w} ${Math.max(1, size)}px ${FAM[fam] || FAM.sans}`;
+const hexToRgb = (h) => { const m = String(h).replace("#", ""); const n = parseInt(m.length === 3 ? m.split("").map((c) => c + c).join("") : m, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const mix = (a, b, k) => { const x = hexToRgb(a), y = hexToRgb(b); return `rgb(${x.map((v, i) => Math.round(lerp(v, y[i], k))).join(",")})`; };
+const alpha = (h, a) => { const [r, g, b] = hexToRgb(h); return `rgba(${r},${g},${b},${a})`; };
+const lines = (s) => String(s || "").split("\n").map((x) => x.trim()).filter(Boolean);
+
+function wrap(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text).split("\n")) {
+    let cur = "";
+    for (const w of para.split(/\s+/).filter(Boolean)) {
+      const test = cur ? cur + " " + w : w;
+      if (ctx.measureText(test).width > maxW && cur) { out.push(cur); cur = w; } else cur = test;
+    }
+    out.push(cur);
+  }
+  return out;
+}
+/** Fit a font size so the longest wrapped line spans at most maxW in at most maxLines lines. */
+function fitSize(ctx, text, maxW, maxLines, start, w, fam) {
+  let size = start;
+  for (let i = 0; i < 30; i++) { ctx.font = font(w, size, fam); if (wrap(ctx, text, maxW).length <= maxLines) break; size *= 0.92; }
+  return size;
+}
+/** Mask reveal: each line slides up out of its own clip box. */
+function revealLines(ctx, ls, x, y, size, lh, t, start, stagger, dur, align = "left", out = null) {
+  ls.forEach((ln, i) => {
+    const p = E.out(seg(t, start + i * stagger, dur));
+    if (p <= 0) return;
+    const q = out ? E.in(seg(t, out + i * stagger * 0.5, dur * 0.7)) : 0;
+    const w = ctx.measureText(ln).width;
+    const lx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+    const ly = y + i * lh;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(lx - size * 0.2, ly - size * 1.02, w + size * 0.4, size * 1.32); ctx.clip();
+    ctx.fillText(ln, lx, ly + (1 - p) * size * 1.15 - q * size * 1.15);
+    ctx.restore();
+  });
+}
+function charReveal(ctx, text, x, y, size, t, start, stagger, dur, align = "left") {
+  const w = ctx.measureText(text).width;
+  let cx = align === "center" ? x - w / 2 : x;
+  [...text].forEach((ch, i) => {
+    const p = E.out(seg(t, start + i * stagger, dur));
+    const cw = ctx.measureText(ch).width;
+    ctx.save(); ctx.globalAlpha *= p; ctx.fillText(ch, cx, y + (1 - p) * size * 0.45); ctx.restore();
+    cx += cw;
+  });
+}
+function cover(ctx, img, x, y, w, h, zoom = 1, px = 0, py = 0) {
+  const r = Math.max(w / img.width, h / img.height) * zoom;
+  const iw = img.width * r, ih = img.height * r;
+  ctx.drawImage(img, x + (w - iw) / 2 + px * w, y + (h - ih) / 2 + py * h, iw, ih);
+}
+/** A stand-in photograph: architectural light and shadow, art-directed, never stock. Replace with an image. */
+function plate(ctx, x, y, w, h, seed, tone = "#c9c4bb", zoom = 1) {
+  const r = rng(seed);
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  ctx.translate(x + w / 2, y + h / 2); ctx.scale(zoom, zoom); ctx.translate(-(x + w / 2), -(y + h / 2));
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, mix(tone, "#ffffff", 0.55)); g.addColorStop(1, mix(tone, "#ffffff", 0.15));
+  ctx.fillStyle = g; ctx.fillRect(x - w, y - h, w * 3, h * 3);
+  const n = 3 + Math.floor(r() * 3);
+  for (let i = 0; i < n; i++) {
+    const bx = x + (i / n) * w * 1.1 - w * 0.05 + r() * w * 0.08, bw = w * (0.18 + r() * 0.22), top = y + h * (0.15 + r() * 0.45);
+    ctx.fillStyle = mix(tone, "#111111", 0.25 + r() * 0.35);
+    ctx.fillRect(bx, top, bw, h);
+    ctx.fillStyle = mix(tone, "#ffffff", 0.35);
+    ctx.fillRect(bx, top, bw * (0.25 + r() * 0.2), h);
+    ctx.fillStyle = alpha("#000000", 0.12);
+    for (let k = 0; k < 6; k++) ctx.fillRect(bx + bw * 0.35, top + h * 0.06 + k * h * 0.07, bw * 0.5, h * 0.012);
+  }
+  ctx.fillStyle = alpha("#000000", 0.18);
+  ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x + w * 0.62, y + h * 0.58); ctx.lineTo(x + w, y + h * 0.66); ctx.lineTo(x + w, y + h); ctx.fill();
+  ctx.restore();
+}
+function image(ctx, key, P) { const v = P[key]; return v && IMAGES.get(v) || null; }
+/** Hand-torn edge path along a line, seeded so the same paper tears the same way every frame. */
+function tornRect(ctx, x, y, w, h, seed, amp) {
+  const r = rng(seed);
+  const steps = Math.max(8, Math.round(w / 8)), vs = Math.max(4, Math.round(h / 8));
+  ctx.beginPath(); ctx.moveTo(x, y + r() * amp);
+  for (let i = 1; i <= steps; i++) ctx.lineTo(x + (w * i) / steps, y + (r() - 0.5) * amp);
+  for (let i = 1; i <= vs; i++) ctx.lineTo(x + w + (r() - 0.5) * amp * 0.6, y + (h * i) / vs);
+  for (let i = steps - 1; i >= 0; i--) ctx.lineTo(x + (w * i) / steps, y + h + (r() - 0.5) * amp);
+  for (let i = vs - 1; i > 0; i--) ctx.lineTo(x + (r() - 0.5) * amp * 0.6, y + (h * i) / vs);
+  ctx.closePath();
+}
+const stepTime = (t, fps) => Math.floor(t * fps) / fps;
+/** Stop-motion boil: a tiny offset and rotation that changes once per drawing. */
+const boil = (seed, step, amt) => { const r = rng(seed + ":" + step); return { x: (r() - 0.5) * 2 * amt, y: (r() - 0.5) * 2 * amt, a: (r() - 0.5) * amt * 0.012 }; };
+const ui = (W, H) => Math.min(W, H) / 100;   // one layout unit
+const isTall = (W, H) => H > W * 1.05;
+
+/* ════════════════════════ Objects ════════════════════════ */
+const C = (key, label, def, group = "look") => ({ key, label, type: "color", default: def, group });
+const T = (key, label, def, max) => ({ key, label, type: "text", default: def, max });
+const LT = (key, label, def) => ({ key, label, type: "longText", default: def });
+const N = (key, label, def, min, max, step = 0.05, group = "motion") => ({ key, label, type: "number", default: def, min, max, step, group });
+const SEL = (key, label, def, options, group = "look") => ({ key, label, type: "select", default: def, options, group });
+const IMG = (key, label) => ({ key, label, type: "image", default: null });
+const SPEED = N("speed", "Pace", 1, 0.6, 1.6);
+const INTENSITY = N("intensity", "Motion intensity", 1, 0.3, 1.5);
+const DISPLAY = SEL("display", "Display type", "sans", ["sans", "serif", "condensed", "fraunces"]);
+
+/* ── 01 Minimal Product Launch ─────────────────────────────────── */
+function drawProduct(ctx, cx, cy, h, P, sweep) {
+  const img = image(ctx, "productImage", P);
+  const w = h * 0.44, r = w / 2;
+  ctx.save();
+  // floor shadow
+  const sh = ctx.createRadialGradient(cx, cy + h / 2, 0, cx, cy + h / 2, w * 1.1);
+  sh.addColorStop(0, alpha("#000000", 0.32)); sh.addColorStop(1, alpha("#000000", 0));
+  ctx.fillStyle = sh; ctx.beginPath(); ctx.ellipse(cx, cy + h / 2 + h * 0.01, w * 1.05, h * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+  if (img) { const ih = h * 1.05, iw = (img.width / img.height) * ih; ctx.drawImage(img, cx - iw / 2, cy - ih / 2, iw, ih); ctx.restore(); return; }
+  ctx.beginPath(); ctx.roundRect(cx - w / 2, cy - h / 2, w, h, r);
+  const body = ctx.createLinearGradient(cx - w / 2, 0, cx + w / 2, 0);
+  const c = P.productColor;
+  body.addColorStop(0, mix(c, "#000000", 0.35)); body.addColorStop(0.32, mix(c, "#ffffff", 0.16)); body.addColorStop(0.55, c); body.addColorStop(1, mix(c, "#000000", 0.45));
+  ctx.fillStyle = body; ctx.fill();
+  ctx.clip();
+  // grille
+  ctx.fillStyle = alpha("#000000", 0.28);
+  const gap = w / 11;
+  for (let gy = cy - h / 2 + r * 1.1; gy < cy + h * 0.06; gy += gap) for (let gx = cx - w / 2 + gap; gx < cx + w / 2 - gap * 0.5; gx += gap) { ctx.beginPath(); ctx.arc(gx, gy, gap * 0.16, 0, Math.PI * 2); ctx.fill(); }
+  // seam and status light
+  ctx.fillStyle = alpha("#ffffff", 0.12); ctx.fillRect(cx - w / 2, cy + h * 0.14, w, 1.2);
+  ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(cx, cy + h * 0.32, w * 0.035, 0, Math.PI * 2); ctx.fill();
+  // light sweep
+  if (sweep > 0 && sweep < 1) {
+    const sx = lerp(cx - w * 1.4, cx + w * 1.4, sweep);
+    const lg = ctx.createLinearGradient(sx - w * 0.5, 0, sx + w * 0.5, 0);
+    lg.addColorStop(0, alpha("#ffffff", 0)); lg.addColorStop(0.5, alpha("#ffffff", 0.32)); lg.addColorStop(1, alpha("#ffffff", 0));
+    ctx.fillStyle = lg; ctx.fillRect(cx - w, cy - h, w * 2, h * 2);
+  }
+  ctx.restore();
+}
+const productLaunch = {
+  id: "minimal-product-launch", name: "Minimal Product Launch", type: "TEMPLATE", category: "Product",
+  tags: ["product", "launch", "minimal", "premium", "hero", "specs", "cta"],
+  description: "A quiet launch: one line of copy, the product rises into a pool of light, three specifications draw out, an end card.",
+  duration: 7.5, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 3.4,
+  scenes: [["Hook", 0], ["Reveal", 1.7], ["Specifications", 4.1], ["End card", 5.8]],
+  props: [
+    T("headline", "Headline", "Quiet, finally.", 40), T("productName", "Product name", "FORM 01", 24), T("tagline", "Tagline", "A speaker that disappears into the room.", 70),
+    T("spec1", "Specification 1", "40 h battery", 30), T("spec2", "Specification 2", "Room-filling 12 W", 30), T("spec3", "Specification 3", "Machined aluminium", 30),
+    T("cta", "Call to action", "Available 21 October", 40), T("logo", "Brand", "NORTHLIGHT", 24), IMG("productImage", "Product image (transparent PNG works best)"),
+    C("bg", "Background", "#ecebe7"), C("ink", "Text", "#151515"), C("accent", "Accent", "#c4432a"), C("productColor", "Product", "#2c2c2c"), DISPLAY,
+    SPEED, INTENSITY, SEL("camera", "Camera", "push", ["still", "push", "drift"], "motion"),
+  ],
+  variants: [
+    { id: "minimal", name: "Minimal", props: {} },
+    { id: "editorial", name: "Editorial", props: { bg: "#f2eee6", ink: "#1b1916", accent: "#1b1916", productColor: "#b8b0a3", display: "serif" } },
+    { id: "luxury", name: "Luxury", props: { bg: "#0f0e0d", ink: "#efe8dc", accent: "#c7a364", productColor: "#1d1c1a", display: "fraunces" } },
+    { id: "brutalist", name: "Brutalist", props: { bg: "#e4e2dc", ink: "#000000", accent: "#000000", productColor: "#d8d4cb", display: "condensed" } },
+  ],
+  render(ctx, t0, P, W, H) {
+    const t = t0 * P.speed, u = ui(W, H), tall = isTall(W, H), k = P.intensity;
+    ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
+    const cam = P.camera === "push" ? 1 + 0.05 * k * seg(t, 0, 7.5) : 1;
+    const dx = P.camera === "drift" ? -W * 0.015 * k * seg(t, 0, 7.5) : 0;
+    ctx.save(); ctx.translate(W / 2 + dx, H / 2); ctx.scale(cam, cam); ctx.translate(-W / 2, -H / 2);
+    const fam = P.display, heavy = fam === "condensed" ? 400 : fam === "sans" ? 700 : 400;
+    ctx.fillStyle = P.ink; ctx.textBaseline = "alphabetic";
+    // Corner labels
+    ctx.font = font(500, u * 1.9, "mono");
+    ctx.globalAlpha = E.out(seg(t, 0.1, 0.6)) * (1 - seg(t, 5.6, 0.4));
+    ctx.fillText(P.logo.toUpperCase(), u * 5, u * 7.5);
+    const yr = "2026"; ctx.fillText(yr, W - u * 5 - ctx.measureText(yr).width, u * 7.5);
+    ctx.globalAlpha = 1;
+    // Scene 1: headline
+    if (t < 2.4) {
+      const size = fitSize(ctx, P.headline, W * 0.84, tall ? 3 : 2, (tall ? 16 : 13) * u, heavy, fam);
+      ctx.font = font(heavy, size, fam);
+      const ls = wrap(ctx, P.headline, W * 0.84);
+      const lh = size * 1.0;
+      revealLines(ctx, ls, u * 5, H / 2 - ((ls.length - 1) * lh) / 2 + size * 0.35, size, lh, t, 0.15, 0.1, 0.9, "left", 1.45);
+    }
+    // Product
+    const px = tall ? W / 2 : W * 0.6, ph = tall ? H * 0.42 : H * 0.62;
+    const rise = E.out(seg(t, 1.75, 1.3));
+    const settle = 5.8, endP = E.inOut(seg(t, settle, 0.9));
+    const pcx = lerp(px, tall ? W / 2 : W * 0.68, endP), pcy = lerp(H / 2 + H * 0.06, tall ? H * 0.4 : H / 2, endP);
+    const scale = lerp(1, tall ? 0.8 : 0.85, endP);
+    if (rise > 0) {
+      // big product name behind
+      ctx.save();
+      ctx.font = font(fam === "condensed" ? 400 : 300, (tall ? 15 : 22) * u, fam === "sans" ? "sans" : fam);
+      ctx.fillStyle = alpha(P.ink, 0.07 + 0.05 * (P.bg < "#4" ? 1 : 0));
+      const tr = E.out(seg(t, 2.0, 1.4));
+      const nm = P.productName.toUpperCase();
+      ctx.letterSpacing = `${lerp(u * 4, u * 0.6, tr)}px`;
+      const nw = ctx.measureText(nm).width;
+      ctx.globalAlpha = tr * (1 - endP);
+      ctx.fillText(nm, (tall ? W / 2 : W * 0.6) - nw / 2, H / 2 + (tall ? 5 : 8) * u);
+      ctx.restore();
+      ctx.save();
+      ctx.globalAlpha = clamp(rise * 1.4);
+      drawProduct(ctx, pcx, pcy + (1 - rise) * H * 0.35, ph * scale, P, seg(t, 2.5, 1.2));
+      ctx.restore();
+    }
+    // Scene 3: specifications with leader lines
+    const specs = [P.spec1, P.spec2, P.spec3].filter(Boolean);
+    const specOut = seg(t, 5.55, 0.35);
+    specs.forEach((sp, i) => {
+      const s0 = 4.1 + i * 0.32;
+      const p = E.out(seg(t, s0, 0.8));
+      if (p <= 0 || specOut >= 1) return;
+      ctx.save(); ctx.globalAlpha = 1 - specOut;
+      const ty = tall ? H * 0.68 + i * u * 7.5 : H * 0.3 + i * H * 0.17;
+      const tx = tall ? u * 6 : u * 5;
+      const anchorX = px - ph * 0.12, anchorY = H / 2 - ph * 0.25 + i * ph * 0.22;
+      if (!tall) {
+        ctx.strokeStyle = alpha(P.ink, 0.6); ctx.lineWidth = 1;
+        const lx = lerp(tx + W * 0.24, anchorX, p);
+        ctx.beginPath(); ctx.moveTo(tx + W * 0.24, ty - u * 1.2); ctx.lineTo(lx, lerp(ty - u * 1.2, anchorY, p)); ctx.stroke();
+        ctx.fillStyle = P.ink; ctx.beginPath(); ctx.arc(lx, lerp(ty - u * 1.2, anchorY, p), u * 0.55, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = P.ink;
+      ctx.font = font(500, u * 1.7, "mono"); ctx.globalAlpha *= p; ctx.fillText(String(i + 1).padStart(2, "0"), tx, ty - u * 4);
+      ctx.globalAlpha = 1 - specOut;
+      ctx.font = font(fam === "sans" ? 600 : 400, u * (tall ? 4.6 : 3.6), fam);
+      revealLines(ctx, [sp], tx, ty, u * 3.6, 0, t, s0 + 0.1, 0, 0.8);
+      ctx.restore();
+    });
+    // Scene 4: end card
+    const e = E.out(seg(t, 6.0, 0.9));
+    if (e > 0) {
+      const ex = tall ? W / 2 : u * 5, align = tall ? "center" : "left";
+      const ey = tall ? H * 0.72 : H * 0.42;
+      ctx.fillStyle = P.ink;
+      ctx.font = font(fam === "condensed" ? 400 : fam === "sans" ? 700 : 400, u * (tall ? 10 : 9), fam);
+      revealLines(ctx, [P.productName], ex, ey, u * 9, 0, t, 6.0, 0, 0.9, align);
+      ctx.font = font(400, u * 2.6, fam === "condensed" ? "sans" : fam === "fraunces" ? "fraunces" : fam === "serif" ? "serif" : "sans");
+      ctx.globalAlpha = e;
+      const tl = wrap(ctx, P.tagline, tall ? W * 0.8 : W * 0.4);
+      tl.forEach((l, i) => { const w = ctx.measureText(l).width; ctx.fillText(l, align === "center" ? ex - w / 2 : ex, ey + u * 5 + i * u * 3.4); });
+      // CTA pill
+      ctx.font = font(600, u * 1.9, "sans");
+      const cw = ctx.measureText(P.cta).width + u * 4.4, ch = u * 5;
+      const cx0 = align === "center" ? ex - cw / 2 : ex, cy0 = ey + u * 6.5 + tl.length * u * 3.4;
+      const ce = E.back(seg(t, 6.5, 0.6));
+      ctx.globalAlpha = clamp(ce);
+      ctx.fillStyle = P.accent; ctx.beginPath(); ctx.roundRect(cx0, cy0, cw * clamp(ce, 0, 1.2), ch, ch / 2); ctx.fill();
+      ctx.fillStyle = P.bg; ctx.fillText(P.cta, cx0 + u * 2.2, cy0 + ch * 0.66);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  },
+};
+
+/* ── 04 Paper Cut Story ─────────────────────────────────── */
+function paperLayer(ctx, W, H, baseY, amp, seed, color, shadow) {
+  const r = rng(seed);
+  const pts = 14;
+  ctx.save();
+  ctx.shadowColor = alpha("#000000", 0.28 * shadow); ctx.shadowBlur = H * 0.025; ctx.shadowOffsetY = -H * 0.006;
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(-W * 0.1, H * 1.1); ctx.lineTo(-W * 0.1, baseY);
+  let prev = baseY;
+  for (let i = 0; i <= pts; i++) {
+    const x = -W * 0.1 + (W * 1.2 * i) / pts;
+    const y = baseY - Math.sin(i * 0.9 + r() * 2) * amp - r() * amp * 0.5;
+    const mx = x - (W * 1.2) / pts / 2;
+    ctx.quadraticCurveTo(mx, (prev + y) / 2 + (r() - 0.5) * amp * 0.4, x, y);
+    // a few hand-cut notches
+    if (r() > 0.72) ctx.lineTo(x + W * 0.006, y + amp * 0.12);
+    prev = y;
+  }
+  ctx.lineTo(W * 1.1, H * 1.1); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // paper fibre: a few fine flecks, the same every frame
+  ctx.save(); ctx.fillStyle = alpha("#ffffff", 0.06);
+  for (let i = 0; i < 40; i++) { const fx = r() * W, fy = baseY + r() * (H - baseY); ctx.fillRect(fx, fy, W * 0.004, 1); }
+  ctx.restore();
+}
+const paperCut = {
+  id: "paper-cut-story", name: "Paper Cut Story", type: "TEMPLATE", category: "Paper",
+  tags: ["paper", "cut paper", "landscape", "story", "stop motion", "tactile", "handmade", "layers"],
+  description: "Five hand-cut paper layers rise one by one into a landscape, shot on twos, then a title is pinned down in cut-paper strips.",
+  duration: 8, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 5.2,
+  scenes: [["Layers", 0], ["Title", 3.0], ["Caption", 5.0], ["Hold", 6.6]],
+  props: [
+    T("title", "Title", "Where the river begins", 40), T("caption", "Caption", "A story told in six layers of paper", 60), T("label", "Small label", "Chapter one", 24),
+    C("sky", "Sky", "#e9dfcf"), C("sun", "Sun", "#d8613c"), C("l1", "Far hills", "#c7b79c"), C("l2", "Hills", "#9fae8f"), C("l3", "Valley", "#6f8b70"), C("l4", "Near hills", "#3e5c4b"), C("l5", "Foreground", "#22362c"), C("paper", "Title paper", "#f7f2e8"), C("ink", "Title ink", "#1d1a17"),
+    SEL("titleType", "Title type", "serif", ["serif", "sans", "fraunces", "condensed"]),
+    N("fps", "Drawings per second", 12, 6, 24, 1), N("jitter", "Hand jitter", 1, 0, 2.5, 0.1), SPEED,
+  ],
+  variants: [
+    { id: "landscape", name: "Landscape", props: {} },
+    { id: "dusk", name: "Dusk", props: { sky: "#2c2a3a", sun: "#e9c46a", l1: "#4a4660", l2: "#3c3a52", l3: "#2f2d44", l4: "#232236", l5: "#16152a", paper: "#efe7d8" } },
+    { id: "coast", name: "Coast", props: { sky: "#dfe6e6", sun: "#e07a5f", l1: "#b9c9c9", l2: "#8eaab0", l3: "#5f8590", l4: "#3d6572", l5: "#e8dcc4" } },
+  ],
+  render(ctx, t0, P, W, H) {
+    const t = stepTime(t0 * P.speed, P.fps), u = ui(W, H), step = Math.floor(t0 * P.speed * P.fps);
+    ctx.fillStyle = P.sky; ctx.fillRect(0, 0, W, H);
+    const push = 1 + 0.06 * E.inOut(seg(t, 0, 8));
+    ctx.save(); ctx.translate(W / 2, H * 0.6); ctx.scale(push, push); ctx.translate(-W / 2, -H * 0.6);
+    // sun
+    const sp = E.out(seg(t, 0.2, 2.2));
+    const sb = boil("sun", step, P.jitter * u * 0.15);
+    ctx.save(); ctx.shadowColor = alpha("#000000", 0.18); ctx.shadowBlur = u * 2; ctx.fillStyle = P.sun;
+    ctx.beginPath(); ctx.arc(W * 0.66 + sb.x, lerp(H * 0.62, H * 0.33, sp) + sb.y, Math.min(W, H) * 0.11, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    const layers = [[0.5, 0.06, P.l1], [0.58, 0.05, P.l2], [0.66, 0.045, P.l3], [0.76, 0.05, P.l4], [0.88, 0.035, P.l5]];
+    layers.forEach(([y, a, col], i) => {
+      const p = E.out(seg(t, 0.15 + i * 0.42, 1.0));
+      if (p <= 0) return;
+      const b = boil("layer" + i, step, P.jitter * u * 0.12);
+      ctx.save(); ctx.translate(b.x, (1 - p) * H * 0.55 + b.y); ctx.rotate(b.a);
+      paperLayer(ctx, W, H, H * y, H * a, "paper-layer-" + i, col, 1);
+      ctx.restore();
+    });
+    ctx.restore();
+    // title strips
+    const tall = isTall(W, H);
+    const words = P.title.split(/\s+/).filter(Boolean);
+    const size = (tall ? 8.5 : 7) * u;
+    ctx.font = font(P.titleType === "sans" ? 700 : 400, size, P.titleType);
+    const lineMax = tall ? W * 0.82 : W * 0.62;
+    const rows = wrap(ctx, P.title, lineMax);
+    let wi = 0;
+    rows.forEach((row, ri) => {
+      let x = u * 6;
+      const y = (tall ? H * 0.16 : H * 0.18) + ri * size * 1.35;
+      row.split(" ").forEach((w) => {
+        const idx = wi++;
+        const appear = 3.0 + idx * 0.28;
+        const ww = ctx.measureText(w).width;
+        if (t >= appear) {
+          const b = boil("w" + idx, step, P.jitter * u * 0.18);
+          const tilt = (rng("tilt" + idx)() - 0.5) * 0.06;
+          ctx.save(); ctx.translate(x + ww / 2 + b.x, y - size * 0.32 + b.y); ctx.rotate(tilt + b.a);
+          ctx.shadowColor = alpha("#000000", 0.25); ctx.shadowBlur = u * 0.8; ctx.shadowOffsetY = u * 0.35;
+          ctx.fillStyle = P.paper; tornRect(ctx, -ww / 2 - size * 0.18, -size * 0.62, ww + size * 0.36, size * 1.12, "strip" + idx, u * 0.5); ctx.fill();
+          ctx.shadowColor = "transparent"; ctx.fillStyle = P.ink; ctx.fillText(w, -ww / 2, size * 0.3);
+          ctx.restore();
+        }
+        x += ww + size * 0.55;
+      });
+    });
+    // label + caption
+    const cp = E.out(seg(t, 5.0, 0.8));
+    if (cp > 0) {
+      ctx.save(); ctx.globalAlpha = cp; ctx.fillStyle = P.paper;
+      ctx.font = font(500, u * 1.8, "mono");
+      ctx.fillText(P.label.toUpperCase(), u * 6, H - u * 12);
+      ctx.font = font(400, u * (tall ? 3.6 : 3), P.titleType === "condensed" ? "sans" : P.titleType, P.titleType === "serif");
+      ctx.fillText(P.caption, u * 6, H - u * 7);
+      ctx.restore();
+    }
+  },
+};
+
+/* ── 05 Stop Motion Collage ─────────────────────────────────── */
+const collage = {
+  id: "stop-motion-collage", name: "Stop Motion Collage", type: "TEMPLATE", category: "Stop Motion",
+  tags: ["stop motion", "collage", "paper", "scrapbook", "tactile", "photos", "handmade", "campaign"],
+  description: "Torn paper, taped photographs and cut headline strips assemble piece by piece at eight drawings a second, then come apart.",
+  duration: 7, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 4.4,
+  scenes: [["Paper", 0], ["Photographs", 1.2], ["Headline", 2.6], ["Note", 4.2], ["Take apart", 6.0]],
+  props: [
+    T("w1", "Headline word 1", "MADE", 14), T("w2", "Headline word 2", "BY", 14), T("w3", "Headline word 3", "HAND", 14), T("note", "Handwritten note", "small batch, since 1994", 40),
+    IMG("img1", "Photograph 1"), IMG("img2", "Photograph 2"), IMG("img3", "Photograph 3"),
+    C("board", "Board", "#d8cdb9"), C("p1", "Paper 1", "#e9e1d0"), C("p2", "Paper 2", "#b9532d"), C("p3", "Paper 3", "#2f3a45"), C("ink", "Ink", "#141414"),
+    N("fps", "Drawings per second", 8, 4, 15, 1), N("jitter", "Hand jitter", 1, 0, 2.5, 0.1), SPEED,
+  ],
+  variants: [
+    { id: "kraft", name: "Kraft", props: {} },
+    { id: "archive", name: "Archive", props: { board: "#ece8df", p1: "#ffffff", p2: "#1a1a1a", p3: "#c8bfae", ink: "#111111" } },
+    { id: "riso", name: "Riso", props: { board: "#f1ebe1", p1: "#f7e3c1", p2: "#e2563f", p3: "#3a5ba0", ink: "#1d2a52" } },
+  ],
+  render(ctx, t0, P, W, H) {
+    const t = stepTime(t0 * P.speed, P.fps), u = ui(W, H), step = Math.floor(t0 * P.speed * P.fps), tall = isTall(W, H);
+    ctx.fillStyle = P.board; ctx.fillRect(0, 0, W, H);
+    const out = 6.0;
+    const live = (i, at) => t >= at && t < out + (12 - i) * 0.08;
+    const piece = (i, at, fn) => { if (!live(i, at)) return; const b = boil("c" + i, step, P.jitter * u * 0.22); ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.a); fn(); ctx.restore(); };
+    const scraps = [[0.06, 0.08, 0.5, 0.42, P.p1, -0.04], [0.48, 0.48, 0.46, 0.44, P.p3, 0.03], [0.62, 0.06, 0.3, 0.3, P.p2, 0.05]];
+    scraps.forEach(([x, y, w, h, c, a], i) => piece(i, 0.1 + i * 0.25, () => {
+      ctx.translate(W * (x + w / 2), H * (y + h / 2)); ctx.rotate(a);
+      ctx.shadowColor = alpha("#000000", 0.2); ctx.shadowBlur = u * 1.2; ctx.shadowOffsetY = u * 0.4;
+      ctx.fillStyle = c; tornRect(ctx, -W * w / 2, -H * h / 2, W * w, H * h, "scrap" + i, u * 0.9); ctx.fill();
+    }));
+    const photos = tall ? [[0.1, 0.3, 0.52, 0.22, -0.05], [0.42, 0.5, 0.48, 0.2, 0.04], [0.14, 0.68, 0.4, 0.17, -0.02]] : [[0.1, 0.18, 0.28, 0.42, -0.05], [0.44, 0.34, 0.24, 0.36, 0.035], [0.7, 0.22, 0.2, 0.3, -0.03]];
+    photos.forEach(([x, y, w, h, a], i) => piece(3 + i, 1.2 + i * 0.38, () => {
+      const pw = W * w, ph = H * h;
+      ctx.translate(W * x + pw / 2, H * y + ph / 2); ctx.rotate(a);
+      ctx.shadowColor = alpha("#000000", 0.28); ctx.shadowBlur = u * 1.6; ctx.shadowOffsetY = u * 0.6;
+      ctx.fillStyle = "#fbfaf7"; ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+      ctx.shadowColor = "transparent";
+      const m = Math.min(pw, ph) * 0.06;
+      const img = image(ctx, "img" + (i + 1), P);
+      ctx.save(); ctx.beginPath(); ctx.rect(-pw / 2 + m, -ph / 2 + m, pw - m * 2, ph - m * 3); ctx.clip();
+      if (img) cover(ctx, img, -pw / 2 + m, -ph / 2 + m, pw - m * 2, ph - m * 3); else plate(ctx, -pw / 2 + m, -ph / 2 + m, pw - m * 2, ph - m * 3, "photo" + i, [P.p1, P.p3, P.p2][i]);
+      ctx.restore();
+      // tape
+      ctx.fillStyle = alpha("#f3ead2", 0.75); ctx.save(); ctx.translate(0, -ph / 2); ctx.rotate(-a * 2 + 0.05); ctx.fillRect(-pw * 0.16, -u * 1.4, pw * 0.32, u * 2.8); ctx.restore();
+    }));
+    const words = [P.w1, P.w2, P.w3].filter(Boolean);
+    const size = (tall ? 11 : 9) * u;
+    ctx.font = font(400, size, "condensed");
+    words.forEach((w, i) => piece(6 + i, 2.6 + i * 0.5, () => {
+      const ww = ctx.measureText(w).width;
+      const x = tall ? u * 8 + i * u * 4 : W * (0.42 + i * 0.07), y = tall ? H * (0.12 + i * 0.09) : H * (0.55 + i * 0.14);
+      ctx.translate(x + ww / 2, y); ctx.rotate((rng("hw" + i)() - 0.5) * 0.08);
+      ctx.shadowColor = alpha("#000000", 0.25); ctx.shadowBlur = u * 0.8; ctx.shadowOffsetY = u * 0.3;
+      ctx.fillStyle = i === 1 ? P.p2 : "#fbfaf7"; tornRect(ctx, -ww / 2 - size * 0.15, -size * 0.92, ww + size * 0.3, size * 1.08, "hw" + i, u * 0.5); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.fillStyle = i === 1 ? "#fbfaf7" : P.ink; ctx.fillText(w, -ww / 2, 0);
+    }));
+    piece(9, 4.2, () => {
+      ctx.font = font(400, u * (tall ? 4.4 : 3.4), "serif", true);
+      ctx.fillStyle = P.ink;
+      const x = tall ? u * 8 : W * 0.1, y = tall ? H * 0.92 : H * 0.86;
+      ctx.translate(x, y); ctx.rotate(-0.03); ctx.fillText(P.note, 0, 0);
+      const nw = ctx.measureText(P.note).width;
+      ctx.strokeStyle = P.ink; ctx.lineWidth = u * 0.25; ctx.beginPath(); ctx.moveTo(0, u * 1.2); ctx.quadraticCurveTo(nw / 2, u * 2.2, nw, u * 0.8); ctx.stroke();
+    });
+  },
+};
+
+/* ── 06 Kinetic Typography Film ─────────────────────────────────── */
+const kinetic = {
+  id: "kinetic-typography-film", name: "Kinetic Typography Film", type: "TEMPLATE", category: "Typography",
+  tags: ["kinetic type", "typography", "manifesto", "energetic", "editorial", "words", "launch"],
+  description: "A sequence of phrases, each with its own choreography: stack, slam, split and highlight, cutting between ink and paper on the beat.",
+  duration: 9, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 2.6,
+  scenes: [],
+  props: [
+    LT("beats", "Phrases (one per line)", "We cut\nfor feeling\nnot for\nfootage.\nEvery frame\nearns its place."),
+    C("paper", "Paper", "#f3f2ee"), C("ink", "Ink", "#111111"), C("accent", "Accent", "#d6283e"), DISPLAY, N("beat", "Beat length (s)", 1.5, 0.8, 2.5, 0.1), INTENSITY,
+  ],
+  variants: [
+    { id: "editorial", name: "Editorial", props: { display: "serif" } },
+    { id: "energetic", name: "Energetic", props: { display: "condensed", beat: 1.1 } },
+    { id: "minimal", name: "Minimal", props: { display: "sans", accent: "#111111" } },
+    { id: "elegant", name: "Elegant", props: { display: "fraunces", paper: "#efe9df", ink: "#22201c", accent: "#8c6d3f", beat: 1.9 } },
+  ],
+  duration_of: (P) => Math.max(3, lines(P.beats).length * P.beat),
+  scenes_of: (P) => lines(P.beats).map((b, i) => [b.slice(0, 14), i * P.beat]),
+  render(ctx, t, P, W, H) {
+    const beats = lines(P.beats); const u = ui(W, H), tall = isTall(W, H);
+    const i = Math.min(beats.length - 1, Math.floor(t / P.beat)), lt = t - i * P.beat, b = beats[i] || "";
+    const inverted = i % 3 === 1;
+    const bg = inverted ? P.ink : P.paper, fg = inverted ? P.paper : P.ink;
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    const fam = P.display, wt = fam === "sans" ? 800 : 400, k = P.intensity;
+    ctx.fillStyle = fg;
+    ctx.font = font(500, u * 1.8, "mono"); ctx.globalAlpha = 0.6;
+    ctx.fillText(String(i + 1).padStart(2, "0") + " / " + String(beats.length).padStart(2, "0"), u * 5, u * 7);
+    ctx.globalAlpha = 1;
+    const mode = i % 4;
+    const maxW = W * 0.88;
+    if (mode === 0) { // stack: words stacked left, each rising
+      const words = b.split(" ");
+      const size = fitSize(ctx, words.reduce((a, w) => (w.length > a.length ? w : a), ""), maxW, 1, (tall ? 22 : 18) * u, wt, fam);
+      ctx.font = font(wt, Math.min(size, H / (words.length + 0.6)), fam);
+      const s = Math.min(size, H / (words.length + 0.6));
+      revealLines(ctx, words, u * 5, H / 2 - ((words.length - 1) * s * 0.95) / 2 + s * 0.35, s, s * 0.95, lt, 0.05, 0.09 / k, 0.6);
+    } else if (mode === 1) { // slam: one line, scales from big to settled with tracking
+      const size = fitSize(ctx, b, maxW, 1, (tall ? 20 : 16) * u, wt, fam);
+      const p = E.out(seg(lt, 0, 0.55));
+      ctx.save(); ctx.translate(W / 2, H / 2); const sc = lerp(1 + 0.6 * k, 1, p); ctx.scale(sc, sc);
+      ctx.font = font(wt, size, fam); ctx.letterSpacing = `${lerp(u * 2 * k, 0, p)}px`;
+      const w = ctx.measureText(b).width; ctx.globalAlpha = clamp(p * 2);
+      ctx.fillText(b, -w / 2, size * 0.35); ctx.restore();
+    } else if (mode === 2) { // split: halves slide in from opposite sides
+      const words = b.split(" "); const h1 = words.slice(0, Math.ceil(words.length / 2)).join(" "), h2 = words.slice(Math.ceil(words.length / 2)).join(" ");
+      const size = fitSize(ctx, h1.length > h2.length ? h1 : h2, maxW, 1, (tall ? 18 : 15) * u, wt, fam);
+      ctx.font = font(wt, size, fam);
+      const p = E.out(seg(lt, 0, 0.7)), q = E.out(seg(lt, 0.12, 0.7));
+      ctx.fillText(h1, lerp(-W * 0.6 * k, u * 5, p), H / 2 - size * 0.1);
+      const w2 = ctx.measureText(h2).width; ctx.fillStyle = P.accent === P.ink && !inverted ? fg : P.accent;
+      ctx.fillText(h2, lerp(W + W * 0.2 * k, W - u * 5 - w2, q), H / 2 + size * 0.95);
+    } else { // highlight: words appear, a bar sweeps under the last word
+      const size = fitSize(ctx, b, maxW, 2, (tall ? 16 : 13) * u, wt, fam);
+      ctx.font = font(wt, size, fam);
+      const ls = wrap(ctx, b, maxW);
+      const lh = size * 1.02, y0 = H / 2 - ((ls.length - 1) * lh) / 2 + size * 0.35;
+      const lastLine = ls[ls.length - 1], lw = ctx.measureText(lastLine).width;
+      const bar = E.inOut(seg(lt, 0.45, 0.5));
+      ctx.fillStyle = P.accent; ctx.fillRect(u * 5, y0 + (ls.length - 1) * lh - size * 0.78, lw * bar, size * 0.92);
+      ctx.fillStyle = fg;
+      revealLines(ctx, ls, u * 5, y0, size, lh, lt, 0, 0.12, 0.55);
+    }
+  },
+};
+
+/* ── 11 Magazine Opener ─────────────────────────────────── */
+const magazine = {
+  id: "magazine-opener", name: "Magazine Opener", type: "TEMPLATE", category: "Editorial",
+  tags: ["editorial", "magazine", "cover", "fashion", "architecture", "culture", "serif", "photo"],
+  description: "A cover builds itself: masthead drops in, the photograph settles, cover lines slide into the column and the headline is set over the image.",
+  duration: 7, aspects: ["9:16", "4:5", "1:1", "16:9"], poster: 4.6,
+  scenes: [["Masthead", 0], ["Photograph", 0.6], ["Headline", 2.2], ["Cover lines", 3.4]],
+  props: [
+    T("masthead", "Masthead", "NORTHLIGHT", 14), T("issue", "Issue line", "No. 14 — Autumn 2026", 40), T("headline", "Headline", "The quiet architects", 40), T("deck", "Standfirst", "Six studios building slower, smaller and better", 80),
+    LT("lines", "Cover lines (one per line)", "Concrete, reconsidered\nA house of one room\nThe lamp that took ten years"),
+    IMG("photo", "Cover photograph"), C("paper", "Paper", "#f4f1ea"), C("ink", "Ink", "#141210"), C("accent", "Accent", "#b5342b"), SEL("mastType", "Masthead type", "serif", ["serif", "condensed", "fraunces", "sans"]), SPEED,
+  ],
+  variants: [
+    { id: "culture", name: "Culture", props: {} },
+    { id: "fashion", name: "Fashion", props: { mastType: "fraunces", paper: "#f6f0ee", accent: "#111111" } },
+    { id: "architecture", name: "Architecture", props: { mastType: "condensed", paper: "#e9e8e3", accent: "#2c4a6b" } },
+  ],
+  render(ctx, t0, P, W, H) {
+    const t = t0 * P.speed, u = ui(W, H);
+    ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+    const m = u * 4.5;
+    const photo = image(ctx, "photo", P);
+    const pz = lerp(1.12, 1.0, E.out(seg(t, 0.6, 3.5)));
+    const pr = E.inOut(seg(t, 0.6, 1.0));
+    const py0 = H * 0.2, ph = H - py0 - m;
+    ctx.save(); ctx.beginPath(); ctx.rect(m, py0 + ph * (1 - pr), W - m * 2, ph * pr); ctx.clip();
+    if (photo) cover(ctx, photo, m, py0, W - m * 2, ph, pz); else plate(ctx, m, py0, W - m * 2, ph, "cover", "#b9b3a8", pz);
+    ctx.fillStyle = alpha("#000000", 0.18); ctx.fillRect(m, py0 + ph * 0.55, W - m * 2, ph * 0.45);
+    ctx.restore();
+    // masthead
+    ctx.fillStyle = P.ink;
+    const mfam = P.mastType;
+    const mSize = fitSize(ctx, P.masthead, W - m * 2, 1, H * 0.2, mfam === "sans" ? 800 : 400, mfam);
+    ctx.font = font(mfam === "sans" ? 800 : 400, mSize, mfam);
+    const mw = ctx.measureText(P.masthead).width;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, py0 - u * 1.5); ctx.clip();
+    const mp = E.out(seg(t, 0.05, 0.9));
+    ctx.fillText(P.masthead, (W - mw) / 2, py0 - u * 3.5 - (1 - mp) * mSize);
+    ctx.restore();
+    ctx.font = font(500, u * 1.7, "mono"); ctx.globalAlpha = E.out(seg(t, 0.8, 0.6));
+    ctx.fillText(P.issue.toUpperCase(), m, py0 - u * 1.2 + u * 0.1);
+    const pg = "£9.50"; ctx.fillText(pg, W - m - ctx.measureText(pg).width, py0 - u * 1.2 + u * 0.1);
+    ctx.globalAlpha = 1;
+    // headline over image
+    ctx.fillStyle = "#ffffff";
+    const hfam = mfam === "condensed" ? "condensed" : mfam === "sans" ? "sans" : "serif";
+    const hSize = fitSize(ctx, P.headline, (W - m * 4) * 0.9, 3, (isTall(W, H) ? 11 : 9) * u, hfam === "sans" ? 700 : 400, hfam);
+    ctx.font = font(hfam === "sans" ? 700 : 400, hSize, hfam);
+    const hl = wrap(ctx, P.headline, (W - m * 4) * 0.9);
+    const baseY = H - m - u * 9 - (hl.length - 1) * hSize * 0.98;
+    revealLines(ctx, hl, m * 2, baseY, hSize, hSize * 0.98, t, 2.2, 0.14, 0.9);
+    ctx.font = font(400, u * 2.3, "sans"); ctx.globalAlpha = E.out(seg(t, 2.9, 0.7));
+    wrap(ctx, P.deck, (W - m * 4) * 0.7).slice(0, 2).forEach((l, i) => ctx.fillText(l, m * 2, H - m - u * 4.2 + i * u * 3));
+    ctx.globalAlpha = 1;
+    // cover lines column
+    lines(P.lines).slice(0, 4).forEach((l, i) => {
+      const p = E.out(seg(t, 3.4 + i * 0.22, 0.7));
+      if (p <= 0) return;
+      const y = py0 + u * 7 + i * u * 8.5;
+      ctx.save(); ctx.globalAlpha = p;
+      ctx.fillStyle = P.accent; ctx.fillRect(W - m * 2 - u * 26 + (1 - p) * u * 6, y - u * 4.6, u * 4, u * 0.5);
+      ctx.fillStyle = "#ffffff"; ctx.font = font(400, u * 2.6, "serif");
+      wrap(ctx, l, u * 26).slice(0, 2).forEach((ln, j) => ctx.fillText(ln, W - m * 2 - u * 26 + (1 - p) * u * 6, y + j * u * 3));
+      ctx.restore();
+    });
+  },
+};
+
+/* ── 13 Data Story ─────────────────────────────────── */
+const dataStory = {
+  id: "data-story", name: "Data Story", type: "TEMPLATE", category: "Data",
+  tags: ["data", "statistics", "numbers", "chart", "report", "annual review", "editorial", "impact"],
+  description: "One number counts up and lands, a set of editorial bars compares the parts, and a single sentence says what it means.",
+  duration: 8.5, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 4.8,
+  scenes: [["Number", 0], ["Comparison", 2.8], ["Statement", 6.0]],
+  props: [
+    T("number", "Big number", "65000", 12), T("suffix", "After the number", "+", 4), T("numberLabel", "What it counts", "rural entrepreneurs backed since 2008", 60),
+    LT("bars", "Bars (Label: value per line)", "Agriculture: 41\nRetail: 23\nCrafts: 17\nLivestock: 12\nServices: 7"),
+    T("unit", "Bar unit", "%", 4), T("statement", "Statement", "Most of the money goes back into the ground.", 80), T("source", "Source", "Source: annual report 2025–26", 60),
+    C("paper", "Paper", "#f4f3ef"), C("ink", "Ink", "#121212"), C("accent", "Highlight", "#d6283e"), DISPLAY, SPEED,
+  ],
+  variants: [
+    { id: "report", name: "Report", props: {} },
+    { id: "dark", name: "Night edition", props: { paper: "#121212", ink: "#f1efe9", accent: "#e8b04b" } },
+    { id: "serif", name: "Editorial", props: { display: "serif", accent: "#2c5f8a" } },
+  ],
+  render(ctx, t0, P, W, H) {
+    const t = t0 * P.speed, u = ui(W, H), tall = isTall(W, H);
+    ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+    const fam = P.display, wt = fam === "sans" ? 700 : 400;
+    ctx.fillStyle = P.ink;
+    // number
+    const target = parseFloat(String(P.number).replace(/[^0-9.]/g, "")) || 0;
+    const np = E.out(seg(t, 0.2, 1.8));
+    const out1 = E.inOut(seg(t, 2.6, 0.6));
+    if (out1 < 1) {
+      const val = Math.round(target * np).toLocaleString("en-IN") + (np > 0.98 ? P.suffix : "");
+      ctx.save(); ctx.globalAlpha = 1 - out1; ctx.translate(0, -out1 * H * 0.1);
+      const size = fitSize(ctx, Math.round(target).toLocaleString("en-IN") + P.suffix, W * 0.86, 1, (tall ? 24 : 26) * u, wt, fam);
+      ctx.font = font(wt, size, fam); ctx.fillText(val, u * 5, H / 2 + size * 0.2);
+      ctx.font = font(400, u * (tall ? 3.6 : 3), "sans");
+      ctx.globalAlpha = (1 - out1) * E.out(seg(t, 1.2, 0.6));
+      wrap(ctx, P.numberLabel, W * 0.6).forEach((l, i) => ctx.fillText(l, u * 5, H / 2 + size * 0.2 + u * 6 + i * u * 4));
+      ctx.restore();
+    }
+    // bars
+    const bars = lines(P.bars).map((l) => { const [a, b] = l.split(":"); return { label: (a || "").trim(), v: parseFloat(b) || 0 }; }).slice(0, 7);
+    const vmax = Math.max(1, ...bars.map((b) => b.v));
+    const bIn = seg(t, 2.8, 0.1), bOut = E.inOut(seg(t, 5.8, 0.5));
+    if (bIn > 0 && bOut < 1) {
+      ctx.save(); ctx.globalAlpha = 1 - bOut;
+      const top = tall ? H * 0.22 : H * 0.18, rowH = Math.min(u * 11, (H * 0.68) / Math.max(bars.length, 1));
+      const labelW = tall ? W * 0.3 : W * 0.22, bx = u * 5 + labelW, bw = W - bx - u * 14;
+      bars.forEach((b, i) => {
+        const p = E.out(seg(t, 2.9 + i * 0.16, 1.0));
+        const y = top + i * rowH;
+        ctx.fillStyle = P.ink; ctx.font = font(500, u * 2.2, "sans"); ctx.globalAlpha = (1 - bOut) * clamp(p * 2);
+        ctx.fillText(b.label, u * 5, y + rowH * 0.5);
+        ctx.fillStyle = i === 0 ? P.accent : P.ink;
+        ctx.fillRect(bx, y + rowH * 0.32, (bw * b.v / vmax) * p, rowH * 0.22);
+        ctx.fillStyle = P.ink; ctx.font = font(500, u * 2, "mono");
+        ctx.fillText(Math.round(b.v * p) + P.unit, bx + (bw * b.v / vmax) * p + u * 1.5, y + rowH * 0.5);
+        ctx.fillStyle = alpha(P.ink, 0.15); ctx.fillRect(u * 5, y + rowH - 1, W - u * 10, 1);
+      });
+      ctx.restore();
+    }
+    // statement
+    const sp = seg(t, 6.0, 0.1);
+    if (sp > 0) {
+      const size = fitSize(ctx, P.statement, W * 0.86, 3, (tall ? 9 : 7.5) * u, wt, fam);
+      ctx.font = font(wt, size, fam); ctx.fillStyle = P.ink;
+      const ls = wrap(ctx, P.statement, W * 0.86);
+      revealLines(ctx, ls, u * 5, H / 2 - ((ls.length - 1) * size) / 2 + size * 0.3, size, size * 1.02, t, 6.0, 0.12, 0.8);
+      ctx.font = font(500, u * 1.7, "mono"); ctx.globalAlpha = E.out(seg(t, 6.8, 0.6));
+      ctx.fillText(P.source.toUpperCase(), u * 5, H - u * 6); ctx.globalAlpha = 1;
+    }
+  },
+};
+
+/* ── 10 Brand Manifesto ─────────────────────────────────── */
+const manifesto = {
+  id: "brand-manifesto", name: "Brand Manifesto", type: "TEMPLATE", category: "Brand",
+  tags: ["manifesto", "brand film", "values", "statements", "editorial", "typography", "emotional"],
+  description: "Numbered statements arrive one at a time and stack like a printed manifesto; the last line takes the accent and the sign-off closes.",
+  duration: 10, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 6.2,
+  scenes: [],
+  props: [
+    LT("statements", "Statements (one per line)", "We make fewer things.\nWe make them to last.\nWe show how they're made.\nWe'd rather be useful than loud."),
+    T("signoff", "Sign-off", "NORTHLIGHT — since 2009", 40), C("paper", "Paper", "#f2f1ed"), C("ink", "Ink", "#141414"), C("accent", "Accent", "#d6283e"),
+    SEL("display", "Display type", "serif", ["serif", "sans", "fraunces", "condensed"]), N("beat", "Seconds per statement", 2, 1.2, 3, 0.1), SPEED,
+  ],
+  variants: [
+    { id: "printed", name: "Printed", props: {} },
+    { id: "minimal", name: "Minimal", props: { display: "sans", accent: "#141414" } },
+    { id: "night", name: "Night", props: { paper: "#111111", ink: "#eeebe4", accent: "#e0b15a", display: "fraunces" } },
+  ],
+  duration_of: (P) => Math.max(4, lines(P.statements).length * P.beat + 2.4) / P.speed,
+  scenes_of: (P) => [...lines(P.statements).map((s, i) => [`0${i + 1}`, (i * P.beat) / P.speed]), ["Sign-off", (lines(P.statements).length * P.beat) / P.speed]],
+  render(ctx, t0, P, W, H) {
+    const t = t0 * P.speed, u = ui(W, H), tall = isTall(W, H);
+    ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H);
+    const st = lines(P.statements), n = st.length;
+    const fam = P.display, wt = fam === "sans" ? 700 : 400;
+    const size = (tall ? 6.4 : 5.4) * u;
+    const lh = size * 1.6;
+    const total = n * lh;
+    const scroll = Math.max(0, total - H * 0.6);
+    const sy = lerp(0, scroll, E.inOut(seg(t, 0, n * P.beat)));
+    st.forEach((s, i) => {
+      const at = i * P.beat;
+      const p = E.out(seg(t, at, 0.9));
+      if (p <= 0) return;
+      const y = H * 0.24 + i * lh - sy;
+      const active = t < (i + 1) * P.beat || i === n - 1;
+      ctx.save(); ctx.globalAlpha = active ? 1 : 0.32;
+      ctx.fillStyle = P.ink; ctx.font = font(500, u * 1.7, "mono");
+      ctx.fillText(String(i + 1).padStart(2, "0"), u * 5, y - size * 0.15);
+      ctx.fillStyle = i === n - 1 ? P.accent : P.ink;
+      ctx.font = font(wt, size, fam);
+      const ls = wrap(ctx, s, W - u * 22);
+      revealLines(ctx, ls.slice(0, 1), u * 13, y, size, 0, t, at, 0, 0.9);
+      ctx.fillStyle = alpha(P.ink, 0.18); ctx.fillRect(u * 5, y + size * 0.45, (W - u * 10) * E.inOut(seg(t, at + 0.2, 0.9)), 1);
+      ctx.restore();
+    });
+    const so = E.out(seg(t, n * P.beat + 0.3, 0.9));
+    if (so > 0) { ctx.fillStyle = P.ink; ctx.font = font(500, u * 2, "mono"); ctx.globalAlpha = so; ctx.fillText(P.signoff.toUpperCase(), u * 5, H - u * 6); ctx.globalAlpha = 1; ctx.fillStyle = P.accent; ctx.fillRect(u * 5, H - u * 10, u * 8 * so, u * 0.6); }
+  },
+};
+
+/* ── 08 App Launch ─────────────────────────────────── */
+const appLaunch = {
+  id: "app-launch", name: "App Launch", type: "TEMPLATE", category: "UI / Product",
+  tags: ["app", "launch", "ui", "phone", "mockup", "saas", "product", "feature"],
+  description: "A phone arrives, the app's three key screens fill in card by card with a tap, then the device steps aside for the name and where to get it.",
+  duration: 8, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: 3.6,
+  scenes: [["Device", 0], ["Features", 1.2], ["Tap", 3.6], ["End card", 5.4]],
+  props: [
+    T("appName", "App name", "Ledger", 18), T("tagline", "Tagline", "Money, in plain words.", 50), T("f1", "Feature 1", "See where it went", 30), T("f2", "Feature 2", "Split without maths", 30), T("f3", "Feature 3", "Save on autopilot", 30),
+    T("cta", "Call to action", "On iOS and Android", 30), C("bg", "Background", "#e9eae6"), C("ink", "Text", "#111111"), C("accent", "App colour", "#2f6f4f"), C("screen", "Screen", "#fbfbf9"), DISPLAY, SPEED,
+  ],
+  variants: [
+    { id: "light", name: "Light", props: {} },
+    { id: "dark", name: "Dark", props: { bg: "#111111", ink: "#f1f0ec", screen: "#1c1c1b", accent: "#8bd3a8" } },
+    { id: "editorial", name: "Editorial", props: { display: "serif", bg: "#f1ece3", accent: "#b34a2e" } },
+  ],
+  render(ctx, t0, P, W, H) {
+    const t = t0 * P.speed, u = ui(W, H), tall = isTall(W, H);
+    ctx.fillStyle = P.bg; ctx.fillRect(0, 0, W, H);
+    const fam = P.display, wt = fam === "sans" ? 700 : 400;
+    const ph = tall ? H * 0.62 : H * 0.84, pw = ph * 0.49;
+    const arrive = E.out(seg(t, 0.1, 1.1));
+    const aside = E.inOut(seg(t, 5.4, 0.9));
+    const cx = lerp(W / 2, tall ? W / 2 : W * 0.7, aside), cy = lerp(H / 2 + (1 - arrive) * H * 0.7, tall ? H * 0.38 : H / 2, aside);
+    const sc = lerp(1, tall ? 0.74 : 0.92, aside);
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(sc, sc);
+    // device
+    ctx.shadowColor = alpha("#000000", 0.25); ctx.shadowBlur = u * 6; ctx.shadowOffsetY = u * 2;
+    ctx.fillStyle = "#151515"; ctx.beginPath(); ctx.roundRect(-pw / 2, -ph / 2, pw, ph, pw * 0.16); ctx.fill();
+    ctx.shadowColor = "transparent";
+    const bz = pw * 0.035;
+    ctx.fillStyle = P.screen; ctx.beginPath(); ctx.roundRect(-pw / 2 + bz, -ph / 2 + bz, pw - bz * 2, ph - bz * 2, pw * 0.13); ctx.fill();
+    ctx.save(); ctx.clip();
+    const sx = -pw / 2 + bz, sy = -ph / 2 + bz, sw = pw - bz * 2;
+    ctx.fillStyle = "#151515"; ctx.beginPath(); ctx.roundRect(-pw * 0.14, sy + pw * 0.04, pw * 0.28, pw * 0.07, pw * 0.035); ctx.fill();
+    // app header
+    ctx.fillStyle = P.ink; ctx.font = font(wt, pw * 0.1, fam); ctx.globalAlpha = E.out(seg(t, 0.9, 0.6));
+    ctx.fillText(P.appName, sx + sw * 0.08, sy + pw * 0.3); ctx.globalAlpha = 1;
+    const feats = [P.f1, P.f2, P.f3];
+    feats.forEach((f, i) => {
+      const p = E.out(seg(t, 1.3 + i * 0.35, 0.8));
+      if (p <= 0) return;
+      const cy0 = sy + pw * 0.42 + i * pw * 0.36 + (1 - p) * pw * 0.2;
+      const tap = i === 1 ? seg(t, 3.6, 0.8) : 0;
+      ctx.save(); ctx.globalAlpha = p;
+      ctx.fillStyle = i === 1 && tap > 0 ? mix(P.screen, P.accent, 0.12 * Math.sin(Math.PI * tap)) : mix(P.screen, P.ink, 0.05);
+      ctx.beginPath(); ctx.roundRect(sx + sw * 0.06, cy0, sw * 0.88, pw * 0.3, pw * 0.05); ctx.fill();
+      ctx.fillStyle = P.accent; ctx.beginPath(); ctx.roundRect(sx + sw * 0.11, cy0 + pw * 0.06, pw * 0.1, pw * 0.1, pw * 0.025); ctx.fill();
+      ctx.fillStyle = P.ink; ctx.font = font(600, pw * 0.055, "sans"); ctx.fillText(f, sx + sw * 0.11, cy0 + pw * 0.24);
+      ctx.fillStyle = alpha(P.ink, 0.25); ctx.fillRect(sx + sw * 0.3, cy0 + pw * 0.08, sw * 0.4, pw * 0.025); ctx.fillRect(sx + sw * 0.3, cy0 + pw * 0.13, sw * 0.28, pw * 0.025);
+      if (tap > 0 && tap < 1) { ctx.strokeStyle = alpha(P.accent, 1 - tap); ctx.lineWidth = pw * 0.012; ctx.beginPath(); ctx.arc(sx + sw * 0.7, cy0 + pw * 0.15, pw * 0.04 + tap * pw * 0.14, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.restore();
+    });
+    ctx.restore(); ctx.restore();
+    // copy
+    const e = seg(t, 5.7, 0.1);
+    if (e > 0) {
+      ctx.fillStyle = P.ink;
+      const ex = tall ? W / 2 : u * 6, align = tall ? "center" : "left", ey = tall ? H * 0.8 : H * 0.44;
+      // icon
+      const ip = E.back(seg(t, 5.7, 0.6)), is = u * 8;
+      ctx.save(); ctx.translate(align === "center" ? ex : ex + is / 2, ey - is * 1.2); ctx.scale(clamp(ip, 0, 1.2), clamp(ip, 0, 1.2));
+      ctx.fillStyle = P.accent; ctx.beginPath(); ctx.roundRect(-is / 2, -is / 2, is, is, is * 0.24); ctx.fill();
+      ctx.fillStyle = P.screen; ctx.font = font(700, is * 0.55, fam); const ini = P.appName.slice(0, 1); ctx.fillText(ini, -ctx.measureText(ini).width / 2, is * 0.2);
+      ctx.restore();
+      ctx.fillStyle = P.ink; ctx.font = font(wt, u * 9, fam);
+      revealLines(ctx, [P.appName], ex, ey + u * 4, u * 9, 0, t, 5.9, 0, 0.8, align);
+      ctx.font = font(400, u * 3, "sans"); ctx.globalAlpha = E.out(seg(t, 6.3, 0.6));
+      const tw = ctx.measureText(P.tagline).width; ctx.fillText(P.tagline, align === "center" ? ex - tw / 2 : ex, ey + u * 9);
+      ctx.font = font(500, u * 1.8, "mono"); const cw = ctx.measureText(P.cta.toUpperCase()).width; ctx.fillText(P.cta.toUpperCase(), align === "center" ? ex - cw / 2 : ex, ey + u * 14);
+      ctx.globalAlpha = 1;
+    }
+  },
+};
+
+/* ── Components (building blocks) ─────────────────────────────────── */
+const TEXT_COMMON = [C("paper", "Paper", "#f3f2ee"), C("ink", "Ink", "#121212"), C("accent", "Accent", "#d6283e"), DISPLAY, SPEED];
+const component = (id, name, category, description, tags, render, extra = [], duration = 3) => ({
+  id, name, type: category === "Transitions" ? "TRANSITION" : "ANIMATION", category, tags, description, duration, aspects: ["16:9", "9:16", "1:1", "4:5"], poster: duration * 0.7,
+  scenes: [], props: [T("text", "Text", "Every frame earns its place", 60), ...extra, ...TEXT_COMMON], variants: [{ id: "default", name: "Default", props: {} }], render,
+});
+const textBase = (ctx, P, W, H) => { ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H); ctx.fillStyle = P.ink; const u = ui(W, H); const wt = P.display === "sans" ? 700 : 400; const size = fitSize(ctx, P.text, W * 0.84, 2, (isTall(W, H) ? 12 : 10) * u, wt, P.display); ctx.font = font(wt, size, P.display); const ls = wrap(ctx, P.text, W * 0.84); return { u, size, ls, y0: H / 2 - ((ls.length - 1) * size * 1.02) / 2 + size * 0.32, wt }; };
+const COMPONENTS = [
+  component("line-reveal", "Line Reveal", "Typography", "Each line rises out of its own mask. The workhorse of editorial motion.", ["text", "reveal", "mask", "editorial", "headline"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, b = textBase(ctx, P, W, H); revealLines(ctx, b.ls, b.u * 7, b.y0, b.size, b.size * 1.02, t, 0.2, 0.14, 0.9);
+  }),
+  component("character-reveal", "Character Reveal", "Typography", "Letters arrive one by one with a short lift. Use for names and single words.", ["text", "characters", "stagger", "name", "title"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, b = textBase(ctx, P, W, H); b.ls.forEach((l, i) => charReveal(ctx, l, b.u * 7, b.y0 + i * b.size * 1.02, b.size, t, 0.2 + i * 0.3, 0.035, 0.6));
+  }),
+  component("tracking-reveal", "Tracking Reveal", "Typography", "Wide-set letters pull together as the line resolves. Calm, premium, good for product names.", ["text", "tracking", "luxury", "premium", "product name"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, b = textBase(ctx, P, W, H); const p = E.out(seg(t, 0.2, 1.6));
+    ctx.letterSpacing = `${lerp(b.u * 3, 0, p)}px`; ctx.globalAlpha = clamp(p * 1.6);
+    b.ls.forEach((l, i) => { const w = ctx.measureText(l).width; ctx.fillText(l, W / 2 - w / 2, b.y0 + i * b.size * 1.02); });
+  }),
+  component("split-reveal", "Split Reveal", "Typography", "The line opens from a centre seam: top half rises, bottom half falls into place.", ["text", "split", "reveal", "graphic"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, b = textBase(ctx, P, W, H); const p = E.out(seg(t, 0.2, 1.0));
+    b.ls.forEach((l, i) => { const y = b.y0 + i * b.size * 1.02, w = ctx.measureText(l).width, x = b.u * 7;
+      for (const half of [0, 1]) { ctx.save(); ctx.beginPath(); ctx.rect(x - 4, half ? y - b.size * 0.36 : y - b.size * 1.0, w + 8, b.size * 0.64); ctx.clip(); ctx.fillText(l, x, y + (half ? 1 : -1) * (1 - p) * b.size * 0.7); ctx.restore(); } });
+  }),
+  component("word-highlight", "Word Highlight", "Typography", "Words land, then a marker sweeps under the line. For the one phrase that matters.", ["text", "highlight", "marker", "emphasis", "social"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, b = textBase(ctx, P, W, H); const last = b.ls[b.ls.length - 1], lw = ctx.measureText(last).width, bar = E.inOut(seg(t, 1.0, 0.6));
+    ctx.fillStyle = P.accent; ctx.fillRect(b.u * 7, b.y0 + (b.ls.length - 1) * b.size * 1.02 - b.size * 0.8, lw * bar, b.size * 0.95); ctx.fillStyle = P.ink;
+    revealLines(ctx, b.ls, b.u * 7, b.y0, b.size, b.size * 1.02, t, 0.15, 0.12, 0.7);
+  }),
+  component("image-mask", "Image Mask", "Image", "A photograph opens from a centre slot to full frame while it settles from a slow zoom.", ["image", "mask", "reveal", "photo", "editorial"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed; ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H); const p = E.inOut(seg(t, 0.2, 1.4));
+    const w = lerp(W * 0.12, W, p), h = lerp(H * 0.3, H, p); const img = image(ctx, "photo", P);
+    ctx.save(); ctx.beginPath(); ctx.rect((W - w) / 2, (H - h) / 2, w, h); ctx.clip();
+    if (img) cover(ctx, img, 0, 0, W, H, lerp(1.25, 1, E.out(seg(t, 0.2, 2.6)))); else plate(ctx, 0, 0, W, H, "mask", "#b7b1a6", lerp(1.25, 1, E.out(seg(t, 0.2, 2.6))));
+    ctx.restore();
+  }, [IMG("photo", "Photograph")]),
+  component("camera-push", "Camera Push", "Camera", "A slow push into a photograph with a title held still in front, the classic documentary opener.", ["camera", "push", "documentary", "cinematic", "photo", "title"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, u = ui(W, H); const img = image(ctx, "photo", P); const z = lerp(1, 1.14, E.inOut(seg(t, 0, 3)));
+    if (img) cover(ctx, img, 0, 0, W, H, z); else plate(ctx, 0, 0, W, H, "push", "#a9a398", z);
+    ctx.fillStyle = alpha("#000000", 0.25); ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#ffffff"; ctx.font = font(P.display === "sans" ? 700 : 400, u * 7, P.display);
+    revealLines(ctx, wrap(ctx, P.text, W * 0.8), u * 7, H - u * 14, u * 7, u * 7.2, t, 0.6, 0.12, 0.9);
+  }, [IMG("photo", "Photograph")]),
+  component("counter", "Counter", "Data", "A number counts up with an editorial settle and a label underneath.", ["data", "number", "counter", "statistic", "metric"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, u = ui(W, H); ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H); ctx.fillStyle = P.ink;
+    const v = parseFloat(String(P.value).replace(/[^0-9.]/g, "")) || 0, p = E.out(seg(t, 0.2, 1.6)); const wt = P.display === "sans" ? 700 : 400;
+    ctx.font = font(wt, u * 24, P.display); ctx.fillText(Math.round(v * p).toLocaleString("en-IN"), u * 7, H / 2 + u * 6);
+    ctx.font = font(400, u * 3, "sans"); ctx.globalAlpha = E.out(seg(t, 1.2, 0.6)); ctx.fillText(P.text, u * 7, H / 2 + u * 14);
+  }, [T("value", "Number", "11764", 12)]),
+  component("paper-tear", "Paper Tear", "Transitions", "Scene A tears away along a hand-torn edge to reveal scene B underneath.", ["transition", "paper", "tear", "tactile", "physical"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, u = ui(W, H), p = E.inOut(seg(t, 0.6, 1.4));
+    ctx.fillStyle = P.ink; ctx.fillRect(0, 0, W, H); ctx.fillStyle = P.paper; ctx.font = font(700, u * 7, P.display); ctx.fillText(P.textB, u * 7, H / 2 + u * 2);
+    const x = lerp(-W * 0.1, W * 1.15, p);
+    ctx.save(); ctx.shadowColor = alpha("#000000", 0.35); ctx.shadowBlur = u * 2; ctx.shadowOffsetX = u * 0.6;
+    ctx.beginPath(); ctx.moveTo(x, 0); const r = rng("tear"); for (let y = 0; y <= H; y += H / 28) ctx.lineTo(x + (r() - 0.5) * u * 5, y); ctx.lineTo(W * 2, H); ctx.lineTo(W * 2, 0); ctx.closePath();
+    ctx.fillStyle = P.paper; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.moveTo(x, 0); const r2 = rng("tear"); for (let y = 0; y <= H; y += H / 28) ctx.lineTo(x + (r2() - 0.5) * u * 5, y); ctx.lineTo(W * 2, H); ctx.lineTo(W * 2, 0); ctx.closePath(); ctx.clip();
+    ctx.fillStyle = P.ink; ctx.font = font(700, u * 7, P.display); ctx.fillText(P.text, u * 7, H / 2 + u * 2); ctx.restore();
+  }, [T("textB", "Scene B text", "Scene two", 40)], 2.5),
+  component("mask-wipe", "Mask Wipe", "Transitions", "A clean diagonal wipe from scene A to scene B with a hairline leading edge.", ["transition", "wipe", "mask", "graphic", "clean"], (ctx, t0, P, W, H) => {
+    const t = t0 * P.speed, u = ui(W, H), p = E.inOut(seg(t, 0.6, 1.1));
+    ctx.fillStyle = P.paper; ctx.fillRect(0, 0, W, H); ctx.fillStyle = P.ink; ctx.font = font(700, u * 7, P.display); ctx.fillText(P.text, u * 7, H / 2 + u * 2);
+    const x = lerp(-W * 0.4, W * 1.4, p);
+    ctx.save(); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x - W * 0.3, H); ctx.lineTo(-W, H); ctx.lineTo(-W, 0); ctx.closePath(); ctx.clip();
+    ctx.fillStyle = P.ink; ctx.fillRect(0, 0, W, H); ctx.fillStyle = P.paper; ctx.fillText(P.textB, u * 7, H / 2 + u * 2); ctx.restore();
+    ctx.strokeStyle = P.accent; ctx.lineWidth = u * 0.4; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x - W * 0.3, H); ctx.stroke();
+  }, [T("textB", "Scene B text", "Scene two", 40)], 2.5),
+];
+
+const OBJECTS = [productLaunch, paperCut, collage, kinetic, magazine, dataStory, manifesto, appLaunch, ...COMPONENTS];
+const SHELVES = ["All", "Templates", "Typography", "Image", "Transitions", "Product", "Paper", "Stop Motion", "Editorial", "Data", "Brand", "UI / Product"];
+const shelfMatch = (o, s) => s === "All" || (s === "Templates" && o.type === "TEMPLATE") || (s === "Transitions" && o.type === "TRANSITION") || o.category === s || o.tags.includes(s.toLowerCase());
+const defaults = (o) => Object.fromEntries(o.props.map((p) => [p.key, p.default]));
+const propsFor = (o, variant, edits = {}) => ({ ...defaults(o), ...(o.variants.find((v) => v.id === variant)?.props || {}), ...edits });
+const durationOf = (o, P) => (o.duration_of ? o.duration_of(P) : o.duration / (P.speed || 1));
+const scenesOf = (o, P) => (o.scenes_of ? o.scenes_of(P) : o.scenes.map(([n, s]) => [n, s / (P.speed || 1)]));
+const ASPECT = { "16:9": [1920, 1080], "9:16": [1080, 1920], "1:1": [1080, 1080], "4:5": [1080, 1350] };
+const IMAGES = new Map();   // url → loaded HTMLImageElement
+
+/* ════════════════════════ Rendering helpers ════════════════════════ */
+function drawObject(canvas, o, P, t, aspect) {
+  const [AW, AH] = ASPECT[aspect];
+  const box = canvas.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cssW = box.width || 320, cssH = box.height || 180;
+  if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) { canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr); }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Fit the composition's frame inside the canvas (letterbox on the shelf's 16:9 card).
+  const s = Math.min(canvas.width / AW, canvas.height / AH);
+  const W = AW / 1, H = AH / 1;
+  ctx.fillStyle = "#e3e1dc"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save(); ctx.translate((canvas.width - AW * s) / 2, (canvas.height - AH * s) / 2); ctx.scale(s, s);
+  ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  try { o.render(ctx, Math.max(0, t), P, W, H); } catch (e) { console.error(o.id, e); }
+  ctx.restore();
+}
+function drawFrame(ctx, o, P, t, W, H) { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); o.render(ctx, Math.max(0, t), P, W, H); ctx.restore(); }
+function loadImage(url) {
+  if (!url || IMAGES.has(url)) return Promise.resolve();
+  return new Promise((res) => { const im = new Image(); im.crossOrigin = "anonymous"; im.onload = () => { IMAGES.set(url, im); res(); }; im.onerror = () => res(); im.src = url; });
+}
+
+/* ════════════════════════ App state + storage ════════════════════════ */
+const S = { view: "library", shelf: "All", q: "", aiIds: null, aiNote: "", open: null, board: { aspect: "16:9", items: [], joins: [], notes: "" }, saved: [] };
+let cap = { db: null, uid: null, sample: null, assets: null, downloads: null };
+const toast = (m) => { const el = document.getElementById("toast"); el.textContent = m; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (el.hidden = true), 2600); };
+const uidv = (p) => p + "_" + Math.random().toString(36).slice(2, 9);
+let saveT = null;
+function persist() {
+  clearTimeout(saveT);
+  saveT = setTimeout(async () => {
+    const doc = { board: S.board, saved: S.saved, at: Date.now() };
+    if (cap.db && cap.uid) { try { await cap.db.collection("data/users/" + cap.uid).doc("workspace").set(doc); return; } catch (e) { if (e?.code === "quota_exceeded") toast("Storage is full."); } }
+    try { localStorage.setItem("cutroom-archive", JSON.stringify(doc)); } catch {}
+  }, 600);
+}
+async function restore() {
+  let doc = null;
+  if (cap.db && cap.uid) { try { const s = await cap.db.collection("data/users/" + cap.uid).doc("workspace").get(); if (s.exists) doc = s.data(); } catch {} }
+  if (!doc) { try { doc = JSON.parse(localStorage.getItem("cutroom-archive") || "null"); } catch {} }
+  if (doc) { S.board = { aspect: "16:9", items: [], joins: [], notes: "", ...clone(doc.board || {}) }; S.saved = clone(doc.saved || []); }
+  await Promise.all([...S.board.items, ...S.saved].flatMap((it) => Object.values(it.props || {}).filter((v) => typeof v === "string" && /^(https?:|blob:|data:|\/_blob)/.test(v)).map(loadImage)));
+}
+const clone = (x) => JSON.parse(JSON.stringify(x));
+
+/* ════════════════════════ Library view ════════════════════════ */
+const main = document.getElementById("main");
+function libraryView() {
+  const q = S.q.trim().toLowerCase();
+  let list = OBJECTS.filter((o) => shelfMatch(o, S.shelf));
+  if (S.aiIds) list = S.aiIds.map((id) => OBJECTS.find((o) => o.id === id)).filter(Boolean);
+  else if (q) { const words = q.split(/\s+/); list = list.filter((o) => words.every((w) => `${o.name} ${o.category} ${o.tags.join(" ")} ${o.description}`.toLowerCase().includes(w))); }
+  const templates = list.filter((o) => o.type === "TEMPLATE"), parts = list.filter((o) => o.type !== "TEMPLATE");
+  const counts = Object.fromEntries(SHELVES.map((s) => [s, OBJECTS.filter((o) => shelfMatch(o, s)).length]));
+  const card = (o, i) => `<button class="obj" data-act="open" data-id="${o.id}" data-hover="${o.id}" aria-label="${esc(o.name)}: ${esc(o.description)}">
+      <span class="stage-sm"><canvas data-poster="${o.id}"></canvas><span class="tag">${o.type === "TEMPLATE" ? "Template" : o.type === "TRANSITION" ? "Transition" : "Animation"}</span><span class="len">${durationOf(o, propsFor(o, o.variants[0].id)).toFixed(1)}s${o.variants.length > 1 ? " · " + o.variants.length + " variants" : ""}</span></span>
+      <span class="meta"><h3>${esc(o.name)}</h3><span class="mono">${esc(o.category)}</span></span><p>${esc(o.description)}</p></button>`;
+  return `<section class="intro"><h1>Motion<br>archive</h1><p>Editable motion, not videos. Every piece is live code: hover to play it, open it to scrub, change its words, images, colours and timing, then add it to the board and export.</p></section>
+    <div class="shelves" role="group" aria-label="Shelves">${SHELVES.map((s) => `<button data-act="shelf" data-shelf="${esc(s)}" aria-pressed="${S.shelf === s && !S.aiIds}">${esc(s)}<span class="count">${counts[s]}</span></button>`).join("")}</div>
+    ${S.aiIds ? `<p class="answer">${esc(S.aiNote)} <button class="btn sm ghost" data-act="clearAi">Clear</button></p>` : ""}
+    ${templates.length ? `<div class="section-h"><h2>Templates</h2><span class="mono">${templates.length} complete pieces</span></div><div class="grid">${templates.map(card).join("")}</div>` : ""}
+    ${parts.length ? `<div class="section-h"><h2>Building blocks</h2><span class="mono">${parts.length} animations and transitions</span></div><div class="grid small">${parts.map(card).join("")}</div>` : ""}
+    ${!templates.length && !parts.length ? `<p class="empty">Nothing matches. Try a broader word, or describe what you need and press Find.</p>` : ""}
+    ${S.saved.length ? `<div class="section-h"><h2>Your saved versions</h2><span class="mono">${S.saved.length}</span></div><div class="grid small">${S.saved.map((it) => { const o = OBJECTS.find((x) => x.id === it.objectId); return o ? `<button class="obj" data-act="openSaved" data-id="${it.id}" data-hover-saved="${it.id}"><span class="stage-sm"><canvas data-saved="${it.id}"></canvas><span class="tag">Saved</span></span><span class="meta"><h3>${esc(it.name || o.name)}</h3><span class="mono">${esc(it.aspect)}</span></span></button>` : ""; }).join("")}</div>` : ""}`;
+}
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+function paintPosters() {
+  main.querySelectorAll("canvas[data-poster]").forEach((cv) => { const o = OBJECTS.find((x) => x.id === cv.dataset.poster); const P = propsFor(o, o.variants[0].id); drawObject(cv, o, P, o.poster / (o.duration_of ? 1 : 1), o.aspects.includes("16:9") ? "16:9" : o.aspects[0]); });
+  main.querySelectorAll("canvas[data-saved]").forEach((cv) => { const it = S.saved.find((x) => x.id === cv.dataset.saved); const o = OBJECTS.find((x) => x.id === it.objectId); if (o) drawObject(cv, o, propsFor(o, it.variant, it.props), o.poster, it.aspect); });
+}
+// Hover plays the real motion; leaving returns to the poster frame.
+let hoverAnim = null;
+main.addEventListener("pointerover", (e) => {
+  const el = e.target.closest("[data-hover], [data-hover-saved]");
+  if (!el || hoverAnim?.el === el) return;
+  stopHover();
+  const saved = el.dataset.hoverSaved ? S.saved.find((x) => x.id === el.dataset.hoverSaved) : null;
+  const o = OBJECTS.find((x) => x.id === (saved ? saved.objectId : el.dataset.hover));
+  if (!o || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const P = saved ? propsFor(o, saved.variant, saved.props) : propsFor(o, o.variants[0].id);
+  const aspect = saved ? saved.aspect : o.aspects.includes("16:9") ? "16:9" : o.aspects[0];
+  const cv = el.querySelector("canvas"); const D = durationOf(o, P); const t0 = performance.now();
+  const loop = (now) => { drawObject(cv, o, P, ((now - t0) / 1000) % (D + 0.6), aspect); hoverAnim.raf = requestAnimationFrame(loop); };
+  hoverAnim = { el, raf: requestAnimationFrame(loop), reset: () => drawObject(cv, o, P, o.poster, aspect) };
+});
+main.addEventListener("pointerout", (e) => { if (hoverAnim && !hoverAnim.el.contains(e.relatedTarget)) stopHover(); });
+function stopHover() { if (!hoverAnim) return; cancelAnimationFrame(hoverAnim.raf); hoverAnim.reset(); hoverAnim = null; }
+
+/* ════════════════════════ Viewer ════════════════════════ */
+const viewer = document.getElementById("viewer");
+const V = { o: null, variant: null, aspect: "16:9", edits: {}, t: 0, playing: true, raf: 0, last: 0, savedId: null, busy: false, error: null, boardIndex: null };
+function openObject(o, opts = {}) {
+  V.o = o; V.variant = opts.variant || o.variants[0].id; V.aspect = opts.aspect || (o.aspects.includes("16:9") ? "16:9" : o.aspects[0]); V.edits = clone(opts.edits || {});
+  V.t = 0; V.playing = !matchMedia("(prefers-reduced-motion: reduce)").matches; V.savedId = opts.savedId || null; V.boardIndex = opts.boardIndex ?? null; V.error = null;
+  stopHover(); viewer.hidden = false; document.body.style.overflow = "hidden"; renderViewer(); tick(0);
+}
+function closeViewer() { cancelAnimationFrame(V.raf); viewer.hidden = true; document.body.style.overflow = ""; V.o = null; render(); }
+const VP = () => propsFor(V.o, V.variant, V.edits);
+function renderViewer() {
+  const o = V.o, P = VP(), D = durationOf(o, P);
+  const groups = { content: [], look: [], motion: [] };
+  o.props.forEach((p) => groups[p.group === "look" ? "look" : p.group === "motion" ? "motion" : p.type === "color" || p.key === "display" ? "look" : "content"].push(p));
+  const field = (p) => {
+    const v = P[p.key]; const id = "pf-" + p.key;
+    if (p.type === "color") return `<label class="colorf" for="${id}"><span class="chip" style="background:${esc(v)}"><input type="color" id="${id}" data-prop="${p.key}" value="${esc(v)}"></span>${esc(p.label)}</label>`;
+    if (p.type === "image") return `<div class="f"><span style="font-size:13px;font-weight:500">${esc(p.label)}</span><div class="imgf"><span class="th" style="${v ? `background-image:url('${esc(v)}')` : ""}"></span><label class="btn sm" for="${id}">${v ? "Replace" : "Upload"}</label><input type="file" id="${id}" accept="image/*" data-image="${p.key}" hidden>${v ? `<button class="btn sm ghost" data-act="clearImage" data-key="${p.key}">Remove</button>` : ""}</div></div>`;
+    if (p.type === "number") return `<label class="f" for="${id}"><span>${esc(p.label)} <em>${(+v).toFixed(p.step >= 1 ? 0 : 2)}</em></span><input type="range" id="${id}" data-prop="${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${v}"></label>`;
+    if (p.type === "select") return `<label class="f" for="${id}"><span>${esc(p.label)}</span><select class="i" id="${id}" data-prop="${p.key}">${p.options.map((x) => `<option ${x === v ? "selected" : ""} value="${x}">${x[0].toUpperCase() + x.slice(1)}</option>`).join("")}</select></label>`;
+    if (p.type === "longText") return `<label class="f" for="${id}"><span>${esc(p.label)}</span><textarea class="i" id="${id}" data-prop="${p.key}" rows="4">${esc(v)}</textarea></label>`;
+    return `<label class="f" for="${id}"><span>${esc(p.label)}</span><input class="i" id="${id}" data-prop="${p.key}" value="${esc(v)}" ${p.max ? `maxlength="${p.max}"` : ""}></label>`;
+  };
+  const scenes = scenesOf(o, P).filter(([, s]) => s < D);
+  viewer.innerHTML = `<div class="vbar"><button class="btn sm ghost" data-act="close">← Archive</button><h2>${esc(o.name)}</h2><span class="mono">${esc(o.category)} · ${o.type.toLowerCase()}</span><span style="flex:1"></span>
+      <div class="seg" role="group" aria-label="Frame">${o.aspects.map((a) => `<button data-act="aspect" data-aspect="${a}" aria-pressed="${a === V.aspect}">${a}</button>`).join("")}</div></div>
+    <div class="vbody"><div class="stagewrap"><div class="stage" id="vstage"><canvas id="vcanvas" aria-label="${esc(o.name)} preview"></canvas></div>
+      <div class="timeline"><div class="trow"><button class="btn sm dark" data-act="play" id="playbtn" aria-label="${V.playing ? "Pause" : "Play"}">${V.playing ? "Pause" : "Play"}</button><button class="btn sm" data-act="step" data-d="-1" aria-label="Previous frame">‹</button><button class="btn sm" data-act="step" data-d="1" aria-label="Next frame">›</button><span class="time" id="vtime"></span>
+        <div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="Timeline" aria-valuemin="0" aria-valuemax="${D.toFixed(2)}"><div class="rail"></div><div class="fill" id="sfill"></div>${scenes.map(([n, s]) => `<div class="mk" style="left:${(s / D) * 100}%"><span>${esc(n)}</span></div>`).join("")}<div class="head" id="shead"></div></div></div></div></div>
+    <aside class="inspector" aria-label="Edit">
+      ${o.variants.length > 1 ? `<div class="group"><h4>Variants</h4><div class="variants">${o.variants.map((v) => `<button data-act="variant" data-v="${v.id}" aria-pressed="${v.id === V.variant}">${esc(v.name)}</button>`).join("")}</div></div>` : ""}
+      ${cap.sample ? `<form class="ai" id="aiform"><label for="ai-q" style="font-weight:600;font-size:14px">Edit with words</label><p>Claude changes only the properties you name: “make the headline about our coffee”, “slower and darker”.</p><textarea class="i" id="ai-q" rows="2" placeholder="Make it about…"></textarea><button class="btn sm dark" ${V.busy ? "disabled" : ""}>${V.busy ? "Changing…" : "Apply"}</button>${V.error ? `<span class="err">${esc(V.error)}</span>` : ""}</form>` : ""}
+      ${groups.content.length ? `<div class="group"><h4>Content</h4><div class="fields">${groups.content.map(field).join("")}</div></div>` : ""}
+      ${groups.look.length ? `<div class="group"><h4>Look</h4><div class="fields"><div class="colors">${groups.look.filter((p) => p.type === "color").map(field).join("")}</div>${groups.look.filter((p) => p.type !== "color").map(field).join("")}</div></div>` : ""}
+      ${groups.motion.length ? `<div class="group"><h4>Motion</h4><div class="fields">${groups.motion.map(field).join("")}</div></div>` : ""}
+      <div class="group"><h4>Use it</h4><div class="actions">
+        ${V.boardIndex != null ? `<button class="btn red" data-act="updateBoard">Update on board</button>` : `<button class="btn red" data-act="addBoard">Add to board</button>`}
+        <button class="btn" data-act="saveVersion">${V.savedId ? "Save changes" : "Save version"}</button><button class="btn" data-act="exportOne">Export video</button><button class="btn ghost" data-act="reset">Reset</button></div>
+        <p class="note" id="exp-note"></p></div>
+    </aside></div>`;
+}
+function paintViewer() {
+  if (!V.o) return;
+  const cv = document.getElementById("vcanvas"), stage = document.getElementById("vstage");
+  if (!cv) return;
+  const [AW, AH] = ASPECT[V.aspect];
+  const box = stage.getBoundingClientRect();
+  const s = Math.min((box.width - 24) / AW, (box.height - 24) / AH);
+  cv.style.width = Math.max(120, AW * s) + "px"; cv.style.height = Math.max(68, AH * s) + "px";
+  const P = VP(), D = durationOf(V.o, P);
+  drawObject(cv, V.o, P, V.t, V.aspect);
+  const pct = Math.min(1, V.t / D) * 100;
+  document.getElementById("sfill").style.width = pct + "%";
+  document.getElementById("shead").style.left = pct + "%";
+  const fr = Math.floor(V.t * 30);
+  document.getElementById("vtime").textContent = `${V.t.toFixed(2)}s · f${String(fr).padStart(3, "0")} / ${D.toFixed(1)}s`;
+  document.getElementById("scrub").setAttribute("aria-valuenow", V.t.toFixed(2));
+}
+function tick(now) {
+  if (!V.o) return;
+  const dt = V.last ? (now - V.last) / 1000 : 0; V.last = now;
+  const D = durationOf(V.o, VP());
+  if (V.playing) { V.t += dt; if (V.t > D + 0.5) V.t = 0; }
+  paintViewer();
+  V.raf = requestAnimationFrame(tick);
+}
+function scrubTo(clientX) { const r = document.getElementById("scrub").getBoundingClientRect(); V.t = clamp((clientX - r.left) / r.width) * durationOf(V.o, VP()); V.playing = false; const b = document.getElementById("playbtn"); if (b) b.textContent = "Play"; }
+viewer.addEventListener("pointerdown", (e) => {
+  const sc = e.target.closest("#scrub"); if (!sc) return;
+  sc.setPointerCapture(e.pointerId); scrubTo(e.clientX);
+  const mv = (ev) => scrubTo(ev.clientX), up = () => { sc.removeEventListener("pointermove", mv); sc.removeEventListener("pointerup", up); };
+  sc.addEventListener("pointermove", mv); sc.addEventListener("pointerup", up);
+});
+viewer.addEventListener("keydown", (e) => {
+  if (e.target.closest("input, textarea, select")) return;
+  if (e.key === " ") { e.preventDefault(); act.play(); }
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); V.playing = false; V.t = Math.max(0, V.t + (e.key === "ArrowRight" ? 1 : -1) / 30 * (e.shiftKey ? 10 : 1)); }
+  if (e.key === "Escape") closeViewer();
+});
+viewer.addEventListener("input", (e) => {
+  const el = e.target.closest("[data-prop]"); if (!el) return;
+  const p = V.o.props.find((x) => x.key === el.dataset.prop);
+  V.edits[p.key] = p.type === "number" ? +el.value : el.value;
+  if (p.type === "number") { const em = el.closest("label")?.querySelector("em"); if (em) em.textContent = (+el.value).toFixed(p.step >= 1 ? 0 : 2); }
+  if (p.type === "color") el.parentElement.style.background = el.value;
+});
+viewer.addEventListener("change", async (e) => {
+  const el = e.target.closest("[data-image]"); if (!el || !el.files?.[0]) return;
+  const file = el.files[0];
+  let url = null;
+  if (cap.assets) { try { const a = await cap.assets.upload(file); url = a.url; } catch { url = null; } }
+  if (!url) url = URL.createObjectURL(file);
+  await loadImage(url);
+  V.edits[el.dataset.image] = url; renderViewer();
+  if (url.startsWith("blob:")) toast("Image added for this visit. It won't be kept after you close the page.");
+});
+viewer.addEventListener("submit", async (e) => {
+  if (e.target.id !== "aiform") return;
+  e.preventDefault();
+  const q = document.getElementById("ai-q").value.trim(); if (!q) return;
+  V.busy = true; V.error = null; renderViewer();
+  const P = VP();
+  const schema = V.o.props.filter((p) => p.type !== "image").map((p) => ({ key: p.key, label: p.label, type: p.type, ...(p.options ? { options: p.options } : {}), ...(p.min != null ? { min: p.min, max: p.max } : {}), ...(p.max && p.type === "text" ? { maxLength: p.max } : {}), current: P[p.key] }));
+  try {
+    const res = await cap.sample.json(`You edit one motion-design template by changing only its properties. Template: "${V.o.name}" — ${V.o.description}\nEditable properties (JSON): ${JSON.stringify(schema)}\nRequest: ${q}\nChange as few properties as the request needs; never invent new keys. Colours are #rrggbb. Reply with only JSON: {"changes":{"key":value},"summary":"what you changed, in one short sentence"}`);
+    let n = 0;
+    for (const [k, v] of Object.entries(res?.changes || {})) {
+      const p = V.o.props.find((x) => x.key === k); if (!p || p.type === "image") continue;
+      if (p.type === "number") { const x = +v; if (Number.isFinite(x)) { V.edits[k] = clamp(x, p.min, p.max); n++; } }
+      else if (p.type === "color") { if (/^#[0-9a-f]{6}$/i.test(String(v))) { V.edits[k] = v; n++; } }
+      else if (p.type === "select") { if (p.options.includes(v)) { V.edits[k] = v; n++; } }
+      else { V.edits[k] = String(v).slice(0, p.max || 600); n++; }
+    }
+    toast(n ? res.summary || `${n} properties changed` : "Nothing to change for that request.");
+  } catch (err) { V.error = err?.code === "not_granted" ? "Allow Claude for this page to edit with words." : err?.code === "rate_limited" ? "Claude is busy. Try again in a minute." : "Claude couldn't make that change. Try rewording it."; }
+  V.busy = false; renderViewer();
+});
+
+/* ════════════════════════ Board ════════════════════════ */
+const JOINS = ["Cut", "Fade", "Wipe"];
+function boardDuration() { return S.board.items.reduce((n, it) => { const o = OBJECTS.find((x) => x.id === it.objectId); return n + (o ? durationOf(o, propsFor(o, it.variant, it.props)) : 0); }, 0); }
+function boardAt(t) {
+  let at = 0;
+  for (let i = 0; i < S.board.items.length; i++) {
+    const it = S.board.items[i], o = OBJECTS.find((x) => x.id === it.objectId); if (!o) continue;
+    const P = propsFor(o, it.variant, it.props), D = durationOf(o, P);
+    if (t < at + D || i === S.board.items.length - 1) return { i, o, P, lt: t - at, D };
+    at += D;
+  }
+  return null;
+}
+const JOIN_LEN = 0.5;
+function renderBoardFrame(ctx, t, W, H, scratch) {
+  const cur = boardAt(t); if (!cur) { ctx.fillStyle = "#e3e1dc"; ctx.fillRect(0, 0, W, H); return; }
+  drawFrame(ctx, cur.o, cur.P, cur.lt, W, H);
+  const join = S.board.joins[cur.i] || "Cut";
+  const next = S.board.items[cur.i + 1];
+  if (join !== "Cut" && next && cur.lt > cur.D - JOIN_LEN) {
+    const no = OBJECTS.find((x) => x.id === next.objectId); if (!no) return;
+    const k = E.inOut((cur.lt - (cur.D - JOIN_LEN)) / JOIN_LEN);
+    const sctx = scratch.getContext("2d"); if (scratch.width !== W) { scratch.width = W; scratch.height = H; }
+    sctx.setTransform(1, 0, 0, 1, 0, 0); drawFrame(sctx, no, propsFor(no, next.variant, next.props), 0, W, H);
+    ctx.save();
+    if (join === "Fade") { ctx.globalAlpha = k; ctx.drawImage(scratch, 0, 0); }
+    else { ctx.beginPath(); ctx.rect(0, 0, W * k, H); ctx.clip(); ctx.drawImage(scratch, 0, 0); }
+    ctx.restore();
+  }
+}
+let boardPlay = { t: 0, playing: false, raf: 0, last: 0 };
+function boardView() {
+  const b = S.board, D = boardDuration();
+  const strip = b.items.map((it, i) => {
+    const o = OBJECTS.find((x) => x.id === it.objectId);
+    return `${i ? `<div class="join"><select id="join-${i - 1}" data-join="${i - 1}" aria-label="Into item ${i + 1}">${JOINS.map((j) => `<option ${j === (b.joins[i - 1] || "Cut") ? "selected" : ""}>${j}</option>`).join("")}</select></div>` : ""}
+      <div class="bcard" draggable="true" data-drag="${i}"><span class="stage-sm"><canvas data-board="${i}"></canvas><span class="tag">${String(i + 1).padStart(2, "0")}</span></span><h3>${esc(o?.name || "Missing")}</h3>
+      <div class="row"><button class="btn sm" data-act="editBoard" data-i="${i}">Edit</button><button class="btn sm" data-act="dupBoard" data-i="${i}">Duplicate</button><button class="btn sm ghost" data-act="delBoard" data-i="${i}" aria-label="Remove ${esc(o?.name || "")}">Remove</button></div></div>`;
+  }).join("");
+  return `<section class="board-head"><div><p class="mono">Board · ${b.items.length} pieces · ${D.toFixed(1)}s</p><h1>Board</h1></div>
+      <div class="actions"><div class="seg" role="group" aria-label="Board frame">${Object.keys(ASPECT).map((a) => `<button data-act="boardAspect" data-aspect="${a}" aria-pressed="${a === b.aspect}">${a}</button>`).join("")}</div>
+      <button class="btn dark" data-act="boardPlay" ${b.items.length ? "" : "disabled"}>${boardPlay.playing ? "Pause" : "Play board"}</button><button class="btn red" data-act="exportBoard" ${b.items.length ? "" : "disabled"}>Export video</button></div></section>
+    ${b.items.length ? `<div class="strip" id="strip">${strip}</div>
+      <div class="boardplay"><div class="stage" style="min-height:320px"><canvas id="bcanvas" aria-label="Board preview"></canvas></div>
+      <div style="display:grid;gap:12px;align-content:start"><label class="f" for="board-notes"><span>Notes</span><textarea class="i" id="board-notes" rows="8" placeholder="Brief, references, what each piece is for">${esc(b.notes)}</textarea></label><p class="note">Drag cards to reorder. Choose how each piece hands over to the next. Pieces keep their own edits; open one with Edit to change it.</p><p class="note" id="bexp-note"></p></div></div>`
+    : `<p class="empty">The board is empty. Open any template or animation in the archive and choose Add to board. Pieces play one after another and export as one video.</p>`}`;
+}
+function paintBoard() {
+  main.querySelectorAll("canvas[data-board]").forEach((cv) => { const it = S.board.items[+cv.dataset.board]; const o = OBJECTS.find((x) => x.id === it.objectId); if (o) drawObject(cv, o, propsFor(o, it.variant, it.props), o.poster, S.board.aspect); });
+  const cv = document.getElementById("bcanvas"); if (!cv) return;
+  const [AW, AH] = ASPECT[S.board.aspect]; const box = cv.parentElement.getBoundingClientRect();
+  const s = Math.min((box.width - 24) / AW, (Math.max(320, box.height) - 24) / AH, 0.5);
+  cv.style.width = AW * s + "px"; cv.style.height = AH * s + "px";
+  const dpr = Math.min(2, devicePixelRatio || 1); cv.width = Math.round(AW * s * dpr); cv.height = Math.round(AH * s * dpr);
+  const ctx = cv.getContext("2d"); ctx.setTransform(cv.width / AW, 0, 0, cv.height / AH, 0, 0);
+  renderBoardFrame(ctx, boardPlay.t, AW, AH, paintBoard.scratch ||= document.createElement("canvas"));
+}
+function boardTick(now) {
+  if (!boardPlay.playing || S.view !== "board") return;
+  const dt = boardPlay.last ? (now - boardPlay.last) / 1000 : 0; boardPlay.last = now;
+  boardPlay.t += dt; if (boardPlay.t > boardDuration()) boardPlay.t = 0;
+  paintBoard(); boardPlay.raf = requestAnimationFrame(boardTick);
+}
+
+/* ════════════════════════ Export (real video, in the browser) ════════════════════════ */
+/** Yield to the page without timer throttling (timers slow to 1s in background tabs). */
+const yieldNow = () => new Promise((r) => { const ch = new MessageChannel(); ch.port1.onmessage = () => r(); ch.port2.postMessage(0); });
+/** Exact, faster-than-real-time MP4: each frame is encoded at its own timestamp with WebCodecs. */
+async function encodeMp4(renderAt, D, AW, AH, W, H, ctx, cv, note) {
+  const FPS = 30, N = Math.ceil(D * FPS);
+  let codec = null;
+  for (const c of ["avc1.640028", "avc1.4d0028", "avc1.42001f"]) {
+    try { if ((await VideoEncoder.isConfigSupported({ codec: c, width: W, height: H, bitrate: 8e6, framerate: FPS })).supported) { codec = c; break; } } catch {}
+  }
+  if (!codec) return null;
+  const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: "avc", width: W, height: H }, fastStart: "in-memory" });
+  let failed = null;
+  const encoder = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => (failed = e) });
+  encoder.configure({ codec, width: W, height: H, bitrate: 8e6, framerate: FPS });
+  for (let f = 0; f < N && !failed; f++) {
+    ctx.setTransform(W / AW, 0, 0, H / AH, 0, 0);
+    renderAt(ctx, f / FPS, AW, AH);
+    const frame = new VideoFrame(cv, { timestamp: Math.round((f * 1e6) / FPS), duration: Math.round(1e6 / FPS) });
+    encoder.encode(frame, { keyFrame: f % 60 === 0 });
+    frame.close();
+    if (encoder.encodeQueueSize > 8 || f % 6 === 0) { note.textContent = "Rendering " + Math.round((f / N) * 100) + "%…"; await yieldNow(); }
+  }
+  if (failed) return null;
+  await encoder.flush(); encoder.close(); muxer.finalize();
+  return { blob: new Blob([muxer.target.buffer], { type: "video/mp4" }), ext: "mp4" };
+}
+/** Fallback: record the canvas in real time, one requested frame at a time. */
+async function recordRealtime(renderAt, D, AW, AH, W, H, ctx, cv, note) {
+  const types = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
+  const type = types.find((x) => MediaRecorder.isTypeSupported?.(x)) || "video/webm";
+  const FPS = 30, N = Math.ceil(D * FPS) + 1;
+  const stream = cv.captureStream(0);
+  const track = stream.getVideoTracks()[0];
+  const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 8_000_000 });
+  const chunks = []; rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  const done = new Promise((r) => (rec.onstop = r));
+  rec.start(250);
+  const start = performance.now();
+  for (let f = 0; f < N; f++) {
+    ctx.setTransform(W / AW, 0, 0, H / AH, 0, 0);
+    renderAt(ctx, Math.min(f / FPS, D), AW, AH);
+    track.requestFrame?.();
+    note.textContent = document.hidden ? "Recording slows down while this tab is in the background. Bring it to the front." : "Recording " + Math.round((f / N) * 100) + "%… keep this tab open.";
+    const wait = start + ((f + 1) * 1000) / FPS - performance.now();
+    await new Promise((r) => setTimeout(r, Math.max(0, wait)));
+  }
+  rec.stop(); await done;
+  return { blob: new Blob(chunks, { type: type.split(";")[0] }), ext: type.startsWith("video/mp4") ? "mp4" : "webm" };
+}
+async function exportVideo(renderAt, D, aspect, name, noteId) {
+  const note = document.getElementById(noteId);
+  if (exportVideo.busy) return;
+  const [AW, AH] = ASPECT[aspect];
+  const scale = Math.min(1, 1920 / Math.max(AW, AH));
+  const W = Math.round((AW * scale) / 2) * 2, H = Math.round((AH * scale) / 2) * 2;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  exportVideo.busy = true;
+  let out = null;
+  try {
+    if (window.VideoEncoder && window.VideoFrame && window.Mp4Muxer) out = await encodeMp4(renderAt, D, AW, AH, W, H, ctx, cv, note);
+    if (!out && typeof MediaRecorder !== "undefined") out = await recordRealtime(renderAt, D, AW, AH, W, H, ctx, cv, note);
+  } catch (e) { console.error(e); }
+  exportVideo.busy = false;
+  if (!out) { note.textContent = "This browser can't make video here."; return; }
+  const { blob, ext } = out;
+  note.textContent = `Ready: ${(blob.size / 1e6).toFixed(1)} MB ${ext.toUpperCase()}.`;
+  const filename = (name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "cutroom") + "." + ext;
+  if (cap.downloads) { try { await cap.downloads.save({ filename, data: blob }); toast("Saved " + filename); return; } catch (e) { if (e?.code === "declined") return; } }
+  // Outside Claude (the hosted page), hand the file to the browser directly.
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+  toast("Downloaded " + filename);
+}
+
+/* ════════════════════════ Actions ════════════════════════ */
+const act = {
+  go(el) { S.view = el.dataset.to; boardPlay.playing = false; render(); window.scrollTo({ top: 0 }); },
+  shelf(el) { S.shelf = el.dataset.shelf; S.aiIds = null; render(); },
+  clearAi() { S.aiIds = null; S.q = ""; document.getElementById("q").value = ""; render(); },
+  open(el) { openObject(OBJECTS.find((o) => o.id === el.dataset.id)); },
+  openSaved(el) { const it = S.saved.find((x) => x.id === el.dataset.id); openObject(OBJECTS.find((o) => o.id === it.objectId), { variant: it.variant, aspect: it.aspect, edits: it.props, savedId: it.id }); },
+  close() { closeViewer(); },
+  play() { V.playing = !V.playing; V.last = 0; const b = document.getElementById("playbtn"); if (b) { b.textContent = V.playing ? "Pause" : "Play"; b.setAttribute("aria-label", b.textContent); } },
+  step(el) { V.playing = false; V.t = Math.max(0, V.t + +el.dataset.d / 30); const b = document.getElementById("playbtn"); if (b) b.textContent = "Play"; },
+  aspect(el) { V.aspect = el.dataset.aspect; renderViewer(); },
+  variant(el) { V.variant = el.dataset.v; renderViewer(); },
+  reset() { V.edits = {}; renderViewer(); },
+  clearImage(el) { delete V.edits[el.dataset.key]; renderViewer(); },
+  addBoard() { S.board.items.push({ id: uidv("b"), objectId: V.o.id, variant: V.variant, props: clone(V.edits) }); if (S.board.items.length > 1) S.board.joins[S.board.items.length - 2] ||= "Cut"; persist(); updateCount(); toast("Added to board · " + S.board.items.length + " pieces"); },
+  updateBoard() { const it = S.board.items[V.boardIndex]; if (it) { it.variant = V.variant; it.props = clone(V.edits); persist(); toast("Board updated"); } closeViewer(); },
+  saveVersion() {
+    if (V.savedId) { const it = S.saved.find((x) => x.id === V.savedId); Object.assign(it, { variant: V.variant, aspect: V.aspect, props: clone(V.edits) }); }
+    else { const it = { id: uidv("v"), objectId: V.o.id, variant: V.variant, aspect: V.aspect, props: clone(V.edits), name: (V.edits.headline || V.edits.title || V.edits.productName || V.o.name).toString().slice(0, 40) }; S.saved.unshift(it); V.savedId = it.id; }
+    persist(); toast("Saved to your archive");
+  },
+  exportOne() { const o = V.o, P = VP(); V.playing = false; exportVideo((ctx, t, W, H) => drawFrame(ctx, o, P, t, W, H), durationOf(o, P), V.aspect, P.headline || P.title || o.name, "exp-note"); },
+  editBoard(el) { const i = +el.dataset.i, it = S.board.items[i]; openObject(OBJECTS.find((o) => o.id === it.objectId), { variant: it.variant, aspect: S.board.aspect, edits: it.props, boardIndex: i }); },
+  dupBoard(el) { const i = +el.dataset.i; S.board.items.splice(i + 1, 0, { ...clone(S.board.items[i]), id: uidv("b") }); S.board.joins.splice(i, 0, "Cut"); persist(); render(); },
+  delBoard(el) { const i = +el.dataset.i; S.board.items.splice(i, 1); S.board.joins.splice(Math.max(0, i - 1), 1); persist(); render(); },
+  boardAspect(el) { S.board.aspect = el.dataset.aspect; persist(); render(); },
+  boardPlay() { boardPlay.playing = !boardPlay.playing; boardPlay.last = 0; render(); if (boardPlay.playing) boardPlay.raf = requestAnimationFrame(boardTick); },
+  exportBoard() { boardPlay.playing = false; const scratch = document.createElement("canvas"); exportVideo((ctx, t, W, H) => renderBoardFrame(ctx, t, W, H, scratch), boardDuration(), S.board.aspect, "cutroom-board", "bexp-note"); },
+};
+document.addEventListener("click", (e) => { const el = e.target.closest("[data-act]"); if (!el || el.disabled) return; const fn = act[el.dataset.act]; if (fn) { e.preventDefault(); fn(el); } });
+main.addEventListener("change", (e) => { const j = e.target.closest("[data-join]"); if (j) { S.board.joins[+j.dataset.join] = j.value; persist(); } });
+main.addEventListener("input", (e) => { if (e.target.id === "board-notes") { S.board.notes = e.target.value; persist(); } });
+// Drag to reorder the board
+let dragFrom = null;
+main.addEventListener("dragstart", (e) => { const c = e.target.closest("[data-drag]"); if (!c) return; dragFrom = +c.dataset.drag; c.classList.add("drag"); e.dataTransfer.effectAllowed = "move"; });
+main.addEventListener("dragend", (e) => e.target.closest("[data-drag]")?.classList.remove("drag"));
+main.addEventListener("dragover", (e) => { if (dragFrom != null && e.target.closest("[data-drag]")) e.preventDefault(); });
+main.addEventListener("drop", (e) => { const c = e.target.closest("[data-drag]"); if (!c || dragFrom == null) return; e.preventDefault(); const to = +c.dataset.drag; const [m] = S.board.items.splice(dragFrom, 1); S.board.items.splice(to, 0, m); dragFrom = null; persist(); render(); });
+
+// Search: words filter instantly; a described need asks Claude to pick from the archive.
+document.getElementById("q").addEventListener("input", (e) => { S.q = e.target.value; S.aiIds = null; if (S.view === "library") render(); });
+document.getElementById("search").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = S.q.trim(); if (!q) return;
+  if (S.view !== "library") { S.view = "library"; }
+  if (!cap.sample || q.split(/\s+/).length < 3) { render(); return; }
+  const btn = document.getElementById("ask-btn"); btn.disabled = true; btn.textContent = "Finding…";
+  try {
+    const catalog = OBJECTS.map((o) => ({ id: o.id, name: o.name, type: o.type, category: o.category, tags: o.tags, description: o.description }));
+    const res = await cap.sample.json(`You are the librarian of a curated motion-design archive. Pick the pieces that best fit this need, best first, up to 6, and skip anything that doesn't fit. Prefer restraint over gimmicks.\nNeed: ${q}\nArchive (JSON): ${JSON.stringify(catalog)}\nReply with only JSON: {"ids":["id"],"note":"one sentence on why these, written to the person"}`, { modelTier: "quick" });
+    const ids = (res?.ids || []).filter((id) => OBJECTS.some((o) => o.id === id));
+    S.aiIds = ids; S.aiNote = res?.note || "Closest matches.";
+  } catch (err) { S.aiIds = null; toast(err?.code === "not_granted" ? "Allow Claude for this page to search by description." : "Couldn't ask Claude. Showing word matches."); }
+  btn.disabled = false; btn.textContent = "Find"; render();
+});
+
+function updateCount() { document.getElementById("board-count").textContent = S.board.items.length ? S.board.items.length : ""; }
+function render() {
+  document.getElementById("nav-lib").setAttribute("aria-current", S.view === "library" ? "page" : "false");
+  document.getElementById("nav-board").setAttribute("aria-current", S.view === "board" ? "page" : "false");
+  main.innerHTML = S.view === "library" ? libraryView() : boardView();
+  updateCount();
+  requestAnimationFrame(() => (S.view === "library" ? paintPosters() : paintBoard()));
+}
+window.addEventListener("resize", () => { clearTimeout(render.r); render.r = setTimeout(() => (S.view === "library" ? paintPosters() : paintBoard()), 150); });
+
+(async function start() {
+  render();
+  const fontsReady = Promise.all(["Geist", "Instrument Serif", "Anton", "Fraunces", "Geist Mono"].map((f) => document.fonts.load(`40px "${f}"`).catch(() => null)));
+  const c = window.claude;
+  if (c?.use) {
+    const [db, user, sample, assets, downloads] = await Promise.all(["db", "user", "sample", "assets", "downloads"].map((n) => c.use(n).catch(() => null)));
+    cap = { db, uid: user ? await user.id().catch(() => null) : null, sample, assets, downloads };
+  }
+  await Promise.all([fontsReady, restore()]);
+  render();
+})();
+</script>
+</body>
+</html>
